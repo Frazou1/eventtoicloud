@@ -31,7 +31,7 @@ schema:
   mqtt_broker: "str"
   mqtt_port: "int"
   mqtt_topic: "str"
-  update_interval: "str"
+  update_interval: "int"
 build:
   builder: docker
   file: Dockerfile
