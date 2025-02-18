@@ -35,12 +35,36 @@ def save_cache(cache):
 
 cache = load_cache()
 
-# Récupérer les événements depuis une API
+# Récupérer les événements depuis un fichier .ics
 def fetch_events():
-    response = requests.get(args.event_source_url)
-    if response.status_code == 200:
-        return response.json()
-    return []
+    try:
+        response = requests.get(args.event_source_url)
+        
+        if response.status_code != 200 or not response.text:
+            print("⚠️ Erreur : Impossible de récupérer les événements. Vérifie l'URL.")
+            return []
+        
+        cal = Calendar.from_ical(response.text)
+        events = []
+
+        for component in cal.walk():
+            if component.name == "VEVENT":
+                event_name = component.get("SUMMARY", "Événement sans titre")
+                start_time = component.get("DTSTART").dt
+                end_time = component.get("DTEND").dt
+
+                if isinstance(start_time, datetime) and isinstance(end_time, datetime):
+                    events.append({
+                        "name": event_name,
+                        "start_time": start_time.strftime("%Y-%m-%dT%H:%M:%S"),
+                        "end_time": end_time.strftime("%Y-%m-%dT%H:%M:%S")
+                    })
+        
+        return events
+
+    except Exception as e:
+        print(f"❌ Erreur lors du traitement du calendrier iCal : {e}")
+        return []
 
 # Filtrer les événements par mot-clé
 def filter_events(events, keyword):
