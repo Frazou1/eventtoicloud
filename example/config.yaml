@@ -1,13 +1,19 @@
-name: "Event to icloud"
+name: "Event Filter Add-on"
 version: "1.0.0"
 slug: "event_filter"
 description: "Un add-on pour filtrer des événements et les envoyer à un calendrier iCloud."
-url: "https://github.com/Frazou1/eventtoicloudn"
-arch: ["amd64", "armv7", "aarch64"]
+url: "https://github.com/Frazou1/eventtoicloud"
+arch:
+  - amd64
+  - armv7
+  - aarch64
+startup: application
+boot: auto
 init: false
 hassio_api: true
 homeassistant_api: true
-map: ["config"]
+map:
+  - config
 options:
   keyword: "Réunion"
   event_source_url: "https://api.example.com/events"
@@ -21,7 +27,7 @@ schema:
   keyword: "str"
   event_source_url: "str"
   icloud_username: "str"
-  icloud_password: "str"
+  icloud_password: "password"
   icloud_calendar_url: "str"
   mqtt_broker: "str"
   mqtt_port: "int"
