@@ -1,19 +1,17 @@
 name: "Event Filter Add-on"
 version: "1.0.0"
-slug: "event_filter"
+slug: "eventtoicloud"
 description: "Un add-on pour filtrer des événements et les envoyer à un calendrier iCloud."
 url: "https://github.com/Frazou1/eventtoicloud"
 arch:
-  - amd64
+  - armhf
   - armv7
   - aarch64
-startup: application
-boot: auto
+  - amd64
+  - i386
 init: false
-hassio_api: true
-homeassistant_api: true
 map:
-  - config
+  - share:rw
 options:
   keyword: "Réunion"
   event_source_url: "https://api.example.com/events"
@@ -32,3 +30,6 @@ schema:
   mqtt_broker: "str"
   mqtt_port: "int"
   mqtt_topic: "str"
+build:
+  builder: docker
+  file: Dockerfile
