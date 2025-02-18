@@ -21,6 +21,7 @@ options:
   mqtt_broker: "homeassistant.local"
   mqtt_port: 1883
   mqtt_topic: "homeassistant/sensor/event"
+  update_interval: 600  # En secondes (10 minutes)
 schema:
   keyword: "str"
   event_source_url: "str"
@@ -30,6 +31,7 @@ schema:
   mqtt_broker: "str"
   mqtt_port: "int"
   mqtt_topic: "str"
+  update_interval: "str"
 build:
   builder: docker
   file: Dockerfile
