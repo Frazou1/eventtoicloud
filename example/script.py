@@ -90,11 +90,11 @@ def fetch_events():
         print(f"❌ Erreur lors du traitement du calendrier iCal : {e}")
         return []
 
-# Filtrer les événements exactement par *Rosalie Fraser*
+# Filtrer les événements qui CONTIENNENT le mot-clé
 def filter_events(events, keyword):
-    filtered = [event for event in events if event["name"].strip().lower() == keyword.lower()]
+    filtered = [event for event in events if keyword.lower() in event["name"].lower()]
     if not filtered:
-        print(f"⚠️ Aucun événement trouvé avec le mot-clé exact : {keyword}")
+        print(f"⚠️ Aucun événement trouvé contenant : {keyword}")
     return filtered
 
 # Vérifier si un événement est déjà envoyé
