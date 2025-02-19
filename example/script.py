@@ -21,7 +21,7 @@ args = parser.parse_args()
 
 # Charger le cache des événements envoyés
 CACHE_FILE = "/config/event_cache.json"
-ICS_DIR = "/config/file_notifications/"
+ICS_DIR = "/www/"
 DAYS_IN_FUTURE = 30  # Nombre de jours dans le futur à considérer
 
 # Vérifier et créer les fichiers de cache et de notifications
