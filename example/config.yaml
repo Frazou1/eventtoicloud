@@ -1,5 +1,5 @@
 name: "Event Filter Add-on"
-version: "1.2.7"
+version: "1.2.8"
 slug: "eventtoicloud"
 description: "Un add-on pour filtrer des événements et les envoyer à un calendrier iCloud."
 url: "https://github.com/Frazou1/eventtoicloud"
