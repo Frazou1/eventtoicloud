@@ -4,7 +4,7 @@ import json
 import requests
 import time
 from icalendar import Calendar, Event
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 import paho.mqtt.client as mqtt
 
 # Lire les arguments depuis le script bash
@@ -47,7 +47,7 @@ def fetch_events():
         
         cal = Calendar.from_ical(response.text)
         events = []
-        now = datetime.now()
+        now = datetime.now(timezone.utc)
         max_date = now + timedelta(days=DAYS_IN_FUTURE)
 
         print("📥 Liste complète des événements récupérés :")
@@ -65,18 +65,25 @@ def fetch_events():
                 start_time = start_time.dt if hasattr(start_time, 'dt') else None
                 end_time = end_time.dt if hasattr(end_time, 'dt') else None
 
-                if isinstance(start_time, datetime) and isinstance(end_time, datetime):
-                    print(f"   - {event_name} ({start_time} -> {end_time})")
-                    # Filtrer les événements trop éloignés
-                    if start_time > max_date:
-                        print(f"⏩ Événement ignoré : {event_name} (dépassé {DAYS_IN_FUTURE} jours)")
-                        continue
-                    
-                    events.append({
-                        "name": event_name,
-                        "start_time": start_time.strftime("%Y-%m-%dT%H:%M:%S"),
-                        "end_time": end_time.strftime("%Y-%m-%dT%H:%M:%S")
-                    })
+                # Uniformiser les fuseaux horaires en UTC
+                if isinstance(start_time, datetime):
+                    if start_time.tzinfo is None:
+                        start_time = start_time.replace(tzinfo=timezone.utc)
+                if isinstance(end_time, datetime):
+                    if end_time.tzinfo is None:
+                        end_time = end_time.replace(tzinfo=timezone.utc)
+
+                print(f"   - {event_name} ({start_time} -> {end_time})")
+                # Filtrer les événements trop éloignés
+                if start_time > max_date:
+                    print(f"⏩ Événement ignoré : {event_name} (dépassé {DAYS_IN_FUTURE} jours)")
+                    continue
+                
+                events.append({
+                    "name": event_name,
+                    "start_time": start_time.strftime("%Y-%m-%dT%H:%M:%S%z"),
+                    "end_time": end_time.strftime("%Y-%m-%dT%H:%M:%S%z")
+                })
         
         return events
 
@@ -105,8 +112,8 @@ def create_ics(event):
     cal = Calendar()
     event_ical = Event()
     event_ical.add("summary", event["name"])
-    event_ical.add("dtstart", datetime.strptime(event["start_time"], "%Y-%m-%dT%H:%M:%S"))
-    event_ical.add("dtend", datetime.strptime(event["end_time"], "%Y-%m-%dT%H:%M:%S"))
+    event_ical.add("dtstart", datetime.strptime(event["start_time"], "%Y-%m-%dT%H:%M:%S%z"))
+    event_ical.add("dtend", datetime.strptime(event["end_time"], "%Y-%m-%dT%H:%M:%S%z"))
     cal.add_component(event_ical)
 
     with open(ICS_FILE, "wb") as f:
