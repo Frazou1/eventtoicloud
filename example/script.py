@@ -39,6 +39,56 @@ def save_cache(cache):
 
 cache = load_cache()
 
+# Fonction pour récupérer les événements depuis le fichier ICS
+def fetch_events():
+    try:
+        response = requests.get(args.event_source_url)
+        
+        if response.status_code != 200 or not response.text:
+            print("⚠️ Erreur : Impossible de récupérer les événements. Vérifie l'URL.")
+            return []
+        
+        cal = Calendar.from_ical(response.text)
+        events = []
+        max_date = NOW + timedelta(days=DAYS_IN_FUTURE)
+
+        print("📥 Liste des événements futurs récupérés :")
+        
+        for component in cal.walk():
+            if component.name == "VEVENT":
+                event_name = component.get("SUMMARY", "Événement sans titre")
+                start_time = component.get("DTSTART")
+                end_time = component.get("DTEND")
+                
+                if not start_time or not end_time:
+                    continue  # Ignorer les événements sans dates
+
+                start_time = start_time.dt if hasattr(start_time, 'dt') else None
+                end_time = end_time.dt if hasattr(end_time, 'dt') else None
+
+                # Uniformiser les fuseaux horaires en UTC
+                if isinstance(start_time, datetime) and start_time.tzinfo is None:
+                    start_time = start_time.replace(tzinfo=timezone.utc)
+                if isinstance(end_time, datetime) and end_time.tzinfo is None:
+                    end_time = end_time.replace(tzinfo=timezone.utc)
+
+                # Filtrer directement les événements passés
+                if start_time < NOW or start_time > max_date:
+                    continue  # Ignorer les événements hors plage
+                
+                print(f"   - {event_name} ({start_time} -> {end_time})")
+                
+                events.append({
+                    "name": event_name,
+                    "start_time": start_time.strftime("%Y-%m-%dT%H:%M:%S%z"),
+                    "end_time": end_time.strftime("%Y-%m-%dT%H:%M:%S%z")
+                })
+        
+        return events
+    except Exception as e:
+        print(f"❌ Erreur lors du traitement du calendrier iCal : {e}")
+        return []
+
 # Fonction pour envoyer un événement à iCloud
 def send_to_icloud(event_name):
     print(f"📤 Envoi de l'événement '{event_name}' à iCloud...")
