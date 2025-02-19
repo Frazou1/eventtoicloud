@@ -89,6 +89,10 @@ def fetch_events():
         print(f"❌ Erreur lors du traitement du calendrier iCal : {e}")
         return []
 
+# Fonction pour filtrer les événements contenant le mot-clé
+def filter_events(events, keyword):
+    return [event for event in events if keyword.lower() in event["name"].lower()]
+
 # Fonction pour envoyer un événement à iCloud
 def send_to_icloud(event_name):
     print(f"📤 Envoi de l'événement '{event_name}' à iCloud...")
@@ -113,7 +117,7 @@ def main():
     events = fetch_events()
     filtered_events = filter_events(events, args.keyword)
     
-    new_events = [event for event in filtered_events if not is_event_already_sent(event)]
+    new_events = [event for event in filtered_events if event["name"] not in cache]
     
     if new_events:
         print(f"📅 {len(new_events)} nouveaux événements détectés !")
@@ -122,11 +126,10 @@ def main():
             print(f"   - {event['name']} ({event['start_time']} -> {event['end_time']})")
         
         for event in new_events:
-            create_ics(event)
             send_to_icloud(event['name'])
-            mark_event_as_sent(event)
+            cache[event["name"]] = event["start_time"]
         
-        update_home_assistant_sensor(new_events)
+        save_cache(cache)
     else:
         print("✅ Aucun nouvel événement à envoyer.")
 
