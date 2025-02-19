@@ -108,26 +108,30 @@ def create_ics(event, event_index):
         print(f"❌ Erreur lors de la création du fichier ICS : {e}")
         return None
 
-# Fonction pour envoyer un événement à iCloud
 def send_to_icloud(event, event_index):
     print(f"📤 Envoi de l'événement '{event['name']}' à iCloud...")
-    ics_file = create_ics(event, event_index)
-    if ics_file is None:
-        return
-    
-    icloud_event_url = f"{args.icloud_calendar_url}{event['uid']}.ics"
-    command = (
-        f'curl -v -X PUT -u "{args.icloud_username}:{args.icloud_password}" '
-        f'-H "Content-Type: text/calendar" '
-        f'--data-binary @{ics_file} "{icloud_event_url}"'
-    )
-    print(f"🔧 Commande exécutée : {command}")
-    response = os.system(command)
-    
-    if response == 0:
-        print(f"✅ Événement '{event['name']}' ajouté avec succès à iCloud !")
-    else:
-        print(f"❌ Échec de l'envoi de l'événement '{event['name']}' à iCloud.")
+    try:
+        print(f"Création du fichier ICS pour l'événement {event['name']}")
+        ics_file = create_ics(event, event_index)
+        print(f"Chemin du fichier ICS créé : {ics_file}")
+        if ics_file is None:
+            return
+        
+        icloud_event_url = f"{args.icloud_calendar_url}{event['uid']}.ics"
+        command = (
+            f'curl -v -X PUT -u "{args.icloud_username}:{args.icloud_password}" '
+            f'-H "Content-Type: text/calendar" '
+            f'--data-binary @{ics_file} "{icloud_event_url}"'
+        )
+        print(f"🔧 Commande exécutée : {command}")
+        response = os.system(command)
+        
+        if response == 0:
+            print(f"✅ Événement '{event['name']}' ajouté avec succès à iCloud !")
+        else:
+            print(f"❌ Échec de l'envoi de l'événement '{event['name']}' à iCloud.")
+    except Exception as e:
+        print(f"Erreur lors de l'envoi à iCloud : {e}")
 
 # Exécution principale
 def main():
