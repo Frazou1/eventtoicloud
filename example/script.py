@@ -117,7 +117,7 @@ def send_to_icloud(event, event_index):
         if ics_file is None:
             return
         
-        icloud_event_url = f"{args.icloud_calendar_url}{event['uid']}.ics"
+        icloud_event_url = f"{args.icloud_calendar_url}{ics_filename}"
         command = (
             f'curl -v -X PUT -u "{args.icloud_username}:{args.icloud_password}" '
             f'-H "Content-Type: text/calendar" '
