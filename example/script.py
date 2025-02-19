@@ -50,8 +50,15 @@ def fetch_events():
         for component in cal.walk():
             if component.name == "VEVENT":
                 event_name = component.get("SUMMARY", "Événement sans titre")
-                start_time = component.get("DTSTART").dt
-                end_time = component.get("DTEND").dt
+                start_time = component.get("DTSTART")
+                end_time = component.get("DTEND")
+                
+                if not start_time or not end_time:
+                    print(f"⚠️ Événement ignoré : {event_name} (DTSTART ou DTEND manquant)")
+                    continue
+
+                start_time = start_time.dt if hasattr(start_time, 'dt') else None
+                end_time = end_time.dt if hasattr(end_time, 'dt') else None
 
                 if isinstance(start_time, datetime) and isinstance(end_time, datetime):
                     events.append({
