@@ -4,7 +4,7 @@ import json
 import requests
 import time
 from icalendar import Calendar, Event
-from datetime import datetime
+from datetime import datetime, timedelta
 import paho.mqtt.client as mqtt
 
 # Lire les arguments depuis le script bash
@@ -22,6 +22,7 @@ args = parser.parse_args()
 # Charger le cache des événements envoyés
 CACHE_FILE = "/config/event_cache.json"
 ICS_FILE = "/config/file_notifications/event.ics"
+DAYS_IN_FUTURE = 30  # Nombre de jours dans le futur à considérer
 
 def load_cache():
     if os.path.exists(CACHE_FILE):
@@ -46,7 +47,11 @@ def fetch_events():
         
         cal = Calendar.from_ical(response.text)
         events = []
+        now = datetime.now()
+        max_date = now + timedelta(days=DAYS_IN_FUTURE)
 
+        print("📥 Liste complète des événements récupérés :")
+        
         for component in cal.walk():
             if component.name == "VEVENT":
                 event_name = component.get("SUMMARY", "Événement sans titre")
@@ -61,6 +66,12 @@ def fetch_events():
                 end_time = end_time.dt if hasattr(end_time, 'dt') else None
 
                 if isinstance(start_time, datetime) and isinstance(end_time, datetime):
+                    print(f"   - {event_name} ({start_time} -> {end_time})")
+                    # Filtrer les événements trop éloignés
+                    if start_time > max_date:
+                        print(f"⏩ Événement ignoré : {event_name} (dépassé {DAYS_IN_FUTURE} jours)")
+                        continue
+                    
                     events.append({
                         "name": event_name,
                         "start_time": start_time.strftime("%Y-%m-%dT%H:%M:%S"),
