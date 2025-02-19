@@ -62,36 +62,65 @@ def fetch_events():
 
         print("📥 Liste des événements futurs récupérés :")
         
+        event_name = None
+        start_time = None
+        end_time = None
+        event_uid = None
+
         for line in response.text.splitlines():
             if line.startswith("SUMMARY:"):
-                
                 event_name = line.replace("SUMMARY:", "").strip()
             elif line.startswith("DTSTART:"):
                 start_time_str = line.replace("DTSTART:", "").strip()
                 if start_time_str.endswith("Z"):
                     start_time = datetime.strptime(start_time_str, "%Y%m%dT%H%M%SZ").replace(tzinfo=timezone.utc)
+                elif len(start_time_str) == 8:  # Format YYYYMMDD (événement sur une journée complète)
+                    start_time = datetime.strptime(start_time_str, "%Y%m%d").replace(tzinfo=timezone.utc)
                 else:
                     start_time = datetime.strptime(start_time_str, "%Y%m%dT%H%M%S").replace(tzinfo=timezone.utc)
             elif line.startswith("DTEND:"):
                 end_time_str = line.replace("DTEND:", "").strip()
                 if end_time_str.endswith("Z"):
                     end_time = datetime.strptime(end_time_str, "%Y%m%dT%H%M%SZ").replace(tzinfo=timezone.utc)
+                elif len(end_time_str) == 8:  # Format YYYYMMDD
+                    end_time = datetime.strptime(end_time_str, "%Y%m%d").replace(tzinfo=timezone.utc)
                 else:
                     end_time = datetime.strptime(end_time_str, "%Y%m%dT%H%M%S").replace(tzinfo=timezone.utc)
-                
+            elif line.startswith("UID:"):
+                event_uid = line.replace("UID:", "").strip()
+
+            # Quand toutes les informations sont collectées, ajouter l'événement
+            if event_name and start_time:
+                # Vérifier si l'événement est dans la plage acceptée
                 if start_time < datetime.now(timezone.utc) or start_time > max_date:
                     continue  # Ignorer les événements hors plage
                 
-                print(f"   - {event_name} ({start_time} -> {end_time})")
-                
-                events.append({
+                # Utiliser l'UID du fichier ICS si disponible, sinon en générer un
+                if not event_uid:
+                    event_uid = str(uuid.uuid4())
+
+                print(f"   - {event_name} ({start_time} -> {end_time if end_time else 'Pas de fin'})")
+
+                event_data = {
                     "name": event_name,
                     "start_time": start_time.strftime("%Y%m%dT%H%M%SZ"),
-                    "end_time": end_time.strftime("%Y%m%dT%H%M%SZ"),
-                    "uid": str(uuid.uuid4())  # Générer un UID unique
-                })
+                    "uid": event_uid
+                }
+
+                # Ajouter end_time uniquement s'il est présent
+                if end_time:
+                    event_data["end_time"] = end_time.strftime("%Y%m%dT%H%M%SZ")
+
+                events.append(event_data)
+
+                # Réinitialiser les variables pour le prochain événement
+                event_name = None
+                start_time = None
+                end_time = None
+                event_uid = None
         
         return events
+
     except Exception as e:
         print(f"❌ Erreur lors du traitement du calendrier iCal : {e}")
         return []
