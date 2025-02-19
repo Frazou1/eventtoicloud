@@ -214,20 +214,23 @@ def publish_to_mqtt(event):
         client.username_pw_set(args.mqtt_username, args.mqtt_password)  # Authentification
         client.connect(args.mqtt_host, args.mqtt_port, 60)
 
-        # Base du topic MQTT
+        # Nettoyer l'UID pour qu'il ne contienne que des caractères autorisés
+        cleaned_uid = clean_uid(event["uid"])
+
+        # Base du topic MQTT (utilisez le discovery prefix "homeassistant")
         topic_base = "homeassistant"
 
-        # Nom du capteur (utilisez l'UID de l'événement pour le rendre unique)
-        sensor_name = f"eventtoicloud_{event['uid']}"
+        # Nom du capteur (utilisez l'UID nettoyé)
+        sensor_name = f"eventtoicloud_{cleaned_uid}"
 
         # Payload pour l'état du capteur
-        state = event["start_time"]
+        state = event["name"]
 
         # Attributs du capteur
         attributes = {
             "start_time": event["start_time"],
             "end_time": event["end_time"],
-            "uid": event["uid"]
+            "uid": event["uid"]  # Conservez l'UID original dans les attributs
         }
 
         # Configuration du capteur pour MQTT Discovery
@@ -240,7 +243,7 @@ def publish_to_mqtt(event):
             "name": f"Événement {event['name']}",  # Nom affiché dans Home Assistant
             "state_topic": state_topic,  # Topic pour l'état du capteur
             "json_attributes_topic": attr_topic,  # Topic pour les attributs
-            "unique_id": sensor_name,  # ID unique pour le capteur
+            "unique_id": sensor_name,  # ID unique pour le capteur (utilisez l'UID nettoyé)
             "device": {
                 "identifiers": ["eventtoicloud_device"],  # Identifiant du dispositif
                 "name": "EventToiCloud",  # Nom du dispositif
@@ -257,7 +260,6 @@ def publish_to_mqtt(event):
         print(f"📤 Événement '{event['name']}' publié sur MQTT avec Discovery.")
     except Exception as e:
         print(f"❌ Erreur lors de la publication MQTT : {e}")
-
 
 # Exécution principale
 # Exécution principale
