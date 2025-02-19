@@ -232,9 +232,9 @@ def publish_to_mqtt(event):
         }
 
         # Configuration du capteur pour MQTT Discovery
-        config_topic = f"{topic_base}/sensor/{sensor_name}/config"
-        state_topic = f"{topic_base}/sensor/{sensor_name}/state"
-        attr_topic = f"{topic_base}/sensor/{sensor_name}/attributes"
+        config_topic = f"{topic_base}/sensor/eventtoicloud/{sensor_name}/config"
+        state_topic = f"{topic_base}/sensor/eventtoicloud/{sensor_name}/state"
+        attr_topic = f"{topic_base}/sensor/eventtoicloud/{sensor_name}/attributes"
 
         # Payload de configuration pour MQTT Discovery
         config_payload = {
