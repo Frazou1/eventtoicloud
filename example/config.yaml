@@ -1,6 +1,6 @@
 {
   "name": "Event Filter Add-on",
-  "version": "1.4.0",
+  "version": "1.4.1",
   "slug": "eventtoicloud",
   "description": "Un add-on pour filtrer des événements et les envoyer à un calendrier iCloud.",
   "url": "https://github.com/Frazou1/eventtoicloud",
@@ -26,7 +26,6 @@
     "mqtt_port": 1883,
     "mqtt_username": "votre_utilisateur_mqtt",
     "mqtt_password": "votre_mot_de_passe_mqtt",
-    "mqtt_topic": "homeassistant/sensor/event",
     "update_interval": 600
   },
   "schema": {
@@ -39,7 +38,6 @@
     "mqtt_port": "int",
     "mqtt_username": "str",
     "mqtt_password": "password",
-    "mqtt_topic": "str",
     "update_interval": "int"
   },
   "build": {
