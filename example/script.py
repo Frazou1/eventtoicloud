@@ -26,7 +26,11 @@ DAYS_IN_FUTURE = 30  # Nombre de jours dans le futur à considérer
 
 # Vérifier et créer les fichiers de cache et de notifications
 os.makedirs(os.path.dirname(CACHE_FILE), exist_ok=True)
-os.makedirs(ICS_DIR, exist_ok=True)
+try:
+    os.makedirs(ICS_DIR, exist_ok=True)
+    print(f"📂 Dossier ICS existant ou créé : {ICS_DIR}")
+except Exception as e:
+    print(f"❌ Erreur lors de la création du dossier ICS : {e}")
 
 def load_cache():
     if os.path.exists(CACHE_FILE):
@@ -87,13 +91,13 @@ def fetch_events():
         print(f"❌ Erreur lors du traitement du calendrier iCal : {e}")
         return []
 
-# Fonction pour filtrer les événements contenant le mot-clé
-def filter_events(events, keyword):
-    return [event for event in events if keyword.lower() in event["name"].lower()]
-
 # Fonction pour créer le fichier ICS
 def create_ics(event, event_index):
     try:
+        if not os.path.exists(ICS_DIR):
+            print(f"⚠️ Dossier ICS inexistant : {ICS_DIR}, tentative de création...")
+            os.makedirs(ICS_DIR, exist_ok=True)
+        
         ics_filename = f"event-{event_index}.ics"
         ics_path = os.path.join(ICS_DIR, ics_filename)
 
@@ -108,48 +112,17 @@ def create_ics(event, event_index):
         print(f"❌ Erreur lors de la création du fichier ICS : {e}")
         return None
 
-# Fonction pour envoyer un événement à iCloud
-def send_to_icloud(event, event_index):
-    print(f"📤 Envoi de l'événement '{event['name']}' à iCloud...")
-    ics_file = create_ics(event, event_index)
-    if ics_file is None:
-        return
-    
-    icloud_event_url = f"{args.icloud_calendar_url}{event['uid']}.ics"
-    command = (
-        f'curl -v -X PUT -u "{args.icloud_username}:{args.icloud_password}" '
-        f'-H "Content-Type: text/calendar" '
-        f'--data-binary @{ics_file} "{icloud_event_url}"'
-    )
-    print(f"🔧 Commande exécutée : {command}")
-    response = os.system(command)
-    
-    if response == 0:
-        print(f"✅ Événement '{event['name']}' ajouté avec succès à iCloud !")
-    else:
-        print(f"❌ Échec de l'envoi de l'événement '{event['name']}' à iCloud.")
-
 # Exécution principale
 def main():
     print("🔄 Récupération des événements...")
     events = fetch_events()
-    filtered_events = filter_events(events, args.keyword)
     
-    new_events = [event for event in filtered_events if event["name"] not in cache]
+    if not os.path.exists(ICS_DIR):
+        print(f"❌ Dossier {ICS_DIR} inexistant malgré la tentative de création.")
+        return
     
-    if new_events:
-        print(f"📅 {len(new_events)} nouveaux événements détectés !")
-        print("📋 Événements trouvés :")
-        for i, event in enumerate(new_events):
-            print(f"   - {event['name']} ({event['start_time']} -> {event['end_time']})")
-        
-        for i, event in enumerate(new_events):
-            send_to_icloud(event, i + 1)
-            cache[event["name"]] = event["start_time"]
-        
-        save_cache(cache)
-    else:
-        print("✅ Aucun nouvel événement à envoyer.")
+    for i, event in enumerate(events):
+        create_ics(event, i + 1)
 
 if __name__ == "__main__":
     main()
