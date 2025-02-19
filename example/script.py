@@ -3,6 +3,7 @@ import os
 import json
 import requests
 import time
+import uuid
 from datetime import datetime, timedelta, timezone
 import paho.mqtt.client as mqtt
 
@@ -77,7 +78,8 @@ def fetch_events():
                 events.append({
                     "name": event_name,
                     "start_time": start_time.strftime("%Y%m%dT%H%M%SZ"),
-                    "end_time": end_time.strftime("%Y%m%dT%H%M%SZ")
+                    "end_time": end_time.strftime("%Y%m%dT%H%M%SZ"),
+                    "uid": str(uuid.uuid4())  # Générer un UID unique
                 })
         
         return events
@@ -92,7 +94,7 @@ def filter_events(events, keyword):
 # Fonction pour créer le fichier ICS
 def create_ics(event):
     try:
-        ics_content = f"""BEGIN:VCALENDAR\nVERSION:2.0\nPRODID:-//Apple Inc.//NONSGML iCal 4.0.5//EN\nBEGIN:VEVENT\nUID:{event['name']}\nDTSTAMP:{event['start_time']}\nDTSTART:{event['start_time']}\nDTEND:{event['end_time']}\nSUMMARY:{event['name']}\nEND:VEVENT\nEND:VCALENDAR"""
+        ics_content = f"""BEGIN:VCALENDAR\nVERSION:2.0\nPRODID:-//Apple Inc.//NONSGML iCal 4.0.5//EN\nBEGIN:VEVENT\nUID:{event['uid']}\nDTSTAMP:{event['start_time']}\nDTSTART:{event['start_time']}\nDTEND:{event['end_time']}\nSUMMARY:{event['name']}\nEND:VEVENT\nEND:VCALENDAR"""
         
         with open(ICS_FILE, "w") as f:
             f.write(ics_content)
@@ -105,7 +107,7 @@ def create_ics(event):
 def send_to_icloud(event):
     print(f"📤 Envoi de l'événement '{event['name']}' à iCloud...")
     create_ics(event)
-    icloud_event_url = f"{args.icloud_calendar_url}event.ics"
+    icloud_event_url = f"{args.icloud_calendar_url}{event['uid']}.ics"
     command = (
         f'curl -v -X PUT -u "{args.icloud_username}:{args.icloud_password}" '
         f'-H "Content-Type: text/calendar" '
