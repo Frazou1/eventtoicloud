@@ -54,9 +54,13 @@ def fetch_events():
 
         print("📥 Liste des événements futurs récupérés :")
         
+        event_name = None
+        start_time = None
+        end_time = None
+        event_uid = None
+        
         for line in response.text.splitlines():
             if line.startswith("SUMMARY:"):
-                
                 event_name = line.replace("SUMMARY:", "").strip()
             elif line.startswith("DTSTART:"):
                 start_time_str = line.replace("DTSTART:", "").strip()
@@ -70,7 +74,10 @@ def fetch_events():
                     end_time = datetime.strptime(end_time_str, "%Y%m%dT%H%M%SZ").replace(tzinfo=timezone.utc)
                 else:
                     end_time = datetime.strptime(end_time_str, "%Y%m%dT%H%M%S").replace(tzinfo=timezone.utc)
+            elif line.startswith("UID:"):
+                event_uid = line.replace("UID:", "").strip()
                 
+            if event_name and start_time and end_time and event_uid:
                 if start_time < datetime.now(timezone.utc) or start_time > max_date:
                     continue  # Ignorer les événements hors plage
                 
@@ -80,8 +87,13 @@ def fetch_events():
                     "name": event_name,
                     "start_time": start_time.strftime("%Y%m%dT%H%M%SZ"),
                     "end_time": end_time.strftime("%Y%m%dT%H%M%SZ"),
-                    "uid": str(uuid.uuid4())  # Générer un UID unique
+                    "uid": event_uid  # Utiliser l'UID original
                 })
+                
+                event_name = None
+                start_time = None
+                end_time = None
+                event_uid = None
         
         return events
     except Exception as e:
@@ -95,7 +107,7 @@ def filter_events(events, keyword):
 # Fonction pour créer le fichier ICS
 def create_ics(event, event_index):
     try:
-        ics_filename = f"event-{event_index}.ics"
+        ics_filename = f"event-{event['uid']}.ics"  # Utiliser l'UID pour le nom du fichier
         ics_path = os.path.join(ICS_DIR, ics_filename)
 
         ics_content = f"""BEGIN:VCALENDAR\nVERSION:2.0\nPRODID:-//Apple Inc.//NONSGML iCal 4.0.5//EN\nBEGIN:VEVENT\nUID:{event['uid']}\nDTSTAMP:{event['start_time']}\nDTSTART:{event['start_time']}\nDTEND:{event['end_time']}\nSUMMARY:{event['name']}\nEND:VEVENT\nEND:VCALENDAR"""
@@ -175,7 +187,7 @@ def send_to_icloud(event, event_index):
 
 def delete_event_from_icloud(event):
     try:
-        ics_filename = f"event-{event['name'].replace(' ', '_')}.ics"  # Nom basé sur le titre
+        ics_filename = f"event-{event['uid']}.ics"  # Utiliser l'UID pour le nom du fichier
         icloud_event_url = f"{args.icloud_calendar_url}{ics_filename}"
 
         command = (
@@ -207,13 +219,13 @@ def main():
     new_or_modified_events = []
 
     for event in filtered_events:
-        event_name = event["name"]
+        event_uid = event["uid"]
         event_time = event["start_time"]
 
         # Vérifier si l'événement est déjà dans le cache
-        if event_name in cache:
-            if cache[event_name] != event_time:
-                print(f"🔄 Mise à jour détectée pour '{event_name}'. Ancienne heure : {cache[event_name]}, Nouvelle heure : {event_time}")
+        if event_uid in cache:
+            if cache[event_uid] != event_time:
+                print(f"🔄 Mise à jour détectée pour '{event['name']}'. Ancienne heure : {cache[event_uid]}, Nouvelle heure : {event_time}")
                 new_or_modified_events.append(event)
         else:
             new_or_modified_events.append(event)
@@ -223,11 +235,11 @@ def main():
         
         for i, event in enumerate(new_or_modified_events):
             # Supprimer l'ancien événement s'il existe déjà dans iCloud
-            if event["name"] in cache:
+            if event["uid"] in cache:
                 delete_event_from_icloud(event)  # Supprime l'ancien événement
 
             send_to_icloud(event, i + 1)  # Envoie le nouvel événement
-            cache[event["name"]] = event["start_time"]  # Mettre à jour le cache
+            cache[event["uid"]] = event["start_time"]  # Mettre à jour le cache avec l'UID
         
         save_cache(cache)
     else:
