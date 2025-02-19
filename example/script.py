@@ -58,10 +58,16 @@ def fetch_events():
                 event_name = line.replace("SUMMARY:", "").strip()
             elif line.startswith("DTSTART:"):
                 start_time_str = line.replace("DTSTART:", "").strip()
-                start_time = datetime.strptime(start_time_str, "%Y%m%dT%H%M%S").replace(tzinfo=timezone.utc)
+                if start_time_str.endswith("Z"):
+                    start_time = datetime.strptime(start_time_str, "%Y%m%dT%H%M%SZ").replace(tzinfo=timezone.utc)
+                else:
+                    start_time = datetime.strptime(start_time_str, "%Y%m%dT%H%M%S").replace(tzinfo=timezone.utc)
             elif line.startswith("DTEND:"):
                 end_time_str = line.replace("DTEND:", "").strip()
-                end_time = datetime.strptime(end_time_str, "%Y%m%dT%H%M%S").replace(tzinfo=timezone.utc)
+                if end_time_str.endswith("Z"):
+                    end_time = datetime.strptime(end_time_str, "%Y%m%dT%H%M%SZ").replace(tzinfo=timezone.utc)
+                else:
+                    end_time = datetime.strptime(end_time_str, "%Y%m%dT%H%M%S").replace(tzinfo=timezone.utc)
                 
                 if start_time < datetime.now(timezone.utc) or start_time > max_date:
                     continue  # Ignorer les événements hors plage
