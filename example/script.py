@@ -173,30 +173,66 @@ def send_to_icloud(event, event_index):
     except Exception as e:
         print(f"❌ Une erreur inattendue s'est produite : {e}")
 
+def delete_event_from_icloud(event):
+    try:
+        ics_filename = f"event-{event['name'].replace(' ', '_')}.ics"  # Nom basé sur le titre
+        icloud_event_url = f"{args.icloud_calendar_url}{ics_filename}"
+
+        command = (
+            f'curl -v -X DELETE -u "{args.icloud_username}:{args.icloud_password}" '
+            f'"{icloud_event_url}"'
+        )
+
+        print(f"🗑️ Suppression de l'événement sur iCloud : {event['name']}")
+        result = subprocess.run(command, shell=True, check=False, capture_output=True, text=True)
+
+        if result.returncode == 0:
+            print(f"✅ Événement '{event['name']}' supprimé avec succès de iCloud.")
+        else:
+            print(f"❌ Échec de la suppression de '{event['name']}'.")
+            print(f"❌ Erreur détaillée : {result.stderr}")
+
+    except Exception as e:
+        print(f"❌ Erreur lors de la suppression de l'événement : {e}")
 
 
 
+# Exécution principale
 # Exécution principale
 def main():
     print("🔄 Récupération des événements...")
     events = fetch_events()
     filtered_events = filter_events(events, args.keyword)
-    
-    new_events = [event for event in filtered_events if event["name"] not in cache]
-    
-    if new_events:
-        print(f"📅 {len(new_events)} nouveaux événements détectés !")
-        print("📋 Événements trouvés :")
-        for i, event in enumerate(new_events):
-            print(f"   - {event['name']} ({event['start_time']} -> {event['end_time']})")
+
+    new_or_modified_events = []
+
+    for event in filtered_events:
+        event_name = event["name"]
+        event_time = event["start_time"]
+
+        # Vérifier si l'événement est déjà dans le cache
+        if event_name in cache:
+            if cache[event_name] != event_time:
+                print(f"🔄 Mise à jour détectée pour '{event_name}'. Ancienne heure : {cache[event_name]}, Nouvelle heure : {event_time}")
+                new_or_modified_events.append(event)
+        else:
+            new_or_modified_events.append(event)
+
+    if new_or_modified_events:
+        print(f"📅 {len(new_or_modified_events)} événements à envoyer ou mettre à jour.")
         
-        for i, event in enumerate(new_events):
-            send_to_icloud(event, i + 1)
-            cache[event["name"]] = event["start_time"]
+        for i, event in enumerate(new_or_modified_events):
+            # Supprimer l'ancien événement s'il existe déjà dans iCloud
+            if event["name"] in cache:
+                delete_event_from_icloud(event)  # Supprime l'ancien événement
+
+            send_to_icloud(event, i + 1)  # Envoie le nouvel événement
+            cache[event["name"]] = event["start_time"]  # Mettre à jour le cache
         
         save_cache(cache)
     else:
-        print("✅ Aucun nouvel événement à envoyer.")
+        print("✅ Aucun événement à mettre à jour ou envoyer.")
+
 
 if __name__ == "__main__":
     main()
