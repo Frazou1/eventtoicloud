@@ -21,12 +21,12 @@ args = parser.parse_args()
 
 # Charger le cache des événements envoyés
 CACHE_FILE = "/config/event_cache.json"
-ICS_FILE = "/config/file_notifications/event.ics"
+ICS_DIR = "/config/file_notifications/"
 DAYS_IN_FUTURE = 30  # Nombre de jours dans le futur à considérer
 
 # Vérifier et créer les fichiers de cache et de notifications
 os.makedirs(os.path.dirname(CACHE_FILE), exist_ok=True)
-os.makedirs(os.path.dirname(ICS_FILE), exist_ok=True)
+os.makedirs(ICS_DIR, exist_ok=True)
 
 def load_cache():
     if os.path.exists(CACHE_FILE):
@@ -92,26 +92,34 @@ def filter_events(events, keyword):
     return [event for event in events if keyword.lower() in event["name"].lower()]
 
 # Fonction pour créer le fichier ICS
-def create_ics(event):
+def create_ics(event, event_index):
     try:
+        ics_filename = f"event-{event_index}.ics"
+        ics_path = os.path.join(ICS_DIR, ics_filename)
+
         ics_content = f"""BEGIN:VCALENDAR\nVERSION:2.0\nPRODID:-//Apple Inc.//NONSGML iCal 4.0.5//EN\nBEGIN:VEVENT\nUID:{event['uid']}\nDTSTAMP:{event['start_time']}\nDTSTART:{event['start_time']}\nDTEND:{event['end_time']}\nSUMMARY:{event['name']}\nEND:VEVENT\nEND:VCALENDAR"""
         
-        with open(ICS_FILE, "w") as f:
+        with open(ics_path, "w") as f:
             f.write(ics_content)
         
-        print(f"📂 Fichier ICS créé :\n{ics_content}")
+        print(f"📂 Fichier ICS créé : {ics_filename}\n{ics_content}")
+        return ics_path
     except Exception as e:
         print(f"❌ Erreur lors de la création du fichier ICS : {e}")
+        return None
 
 # Fonction pour envoyer un événement à iCloud
-def send_to_icloud(event):
+def send_to_icloud(event, event_index):
     print(f"📤 Envoi de l'événement '{event['name']}' à iCloud...")
-    create_ics(event)
+    ics_file = create_ics(event, event_index)
+    if ics_file is None:
+        return
+    
     icloud_event_url = f"{args.icloud_calendar_url}{event['uid']}.ics"
     command = (
         f'curl -v -X PUT -u "{args.icloud_username}:{args.icloud_password}" '
         f'-H "Content-Type: text/calendar" '
-        f'--data-binary @{ICS_FILE} "{icloud_event_url}"'
+        f'--data-binary @{ics_file} "{icloud_event_url}"'
     )
     print(f"🔧 Commande exécutée : {command}")
     response = os.system(command)
@@ -132,11 +140,11 @@ def main():
     if new_events:
         print(f"📅 {len(new_events)} nouveaux événements détectés !")
         print("📋 Événements trouvés :")
-        for event in new_events:
+        for i, event in enumerate(new_events):
             print(f"   - {event['name']} ({event['start_time']} -> {event['end_time']})")
         
-        for event in new_events:
-            send_to_icloud(event)
+        for i, event in enumerate(new_events):
+            send_to_icloud(event, i + 1)
             cache[event["name"]] = event["start_time"]
         
         save_cache(cache)
