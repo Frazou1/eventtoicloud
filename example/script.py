@@ -77,6 +77,10 @@ def fetch_events():
 
                 print(f"   - {event_name} ({start_time} -> {end_time})")
                 
+                # Vérification des incohérences de dates
+                if start_time.year < 2020:
+                    print(f"⚠️ Alerte : L'événement '{event_name}' a une date ancienne ({start_time.year})")
+                
                 # Filtrer les événements hors de la plage de dates autorisée
                 if start_time < NOW or start_time > max_date:
                     print(f"⏩ Événement ignoré : {event_name} (hors plage {NOW.date()} - {max_date.date()})")
@@ -96,7 +100,10 @@ def fetch_events():
 
 # Filtrer les événements exactement par *Rosalie Fraser*
 def filter_events(events, keyword):
-    return [event for event in events if event["name"].strip().lower() == keyword.lower()]
+    filtered = [event for event in events if event["name"].strip().lower() == keyword.lower()]
+    if not filtered:
+        print(f"⚠️ Aucun événement trouvé avec le mot-clé exact : {keyword}")
+    return filtered
 
 # Vérifier si un événement est déjà envoyé
 def is_event_already_sent(event):
