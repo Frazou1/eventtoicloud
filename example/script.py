@@ -3,7 +3,6 @@ import os
 import json
 import requests
 import time
-from icalendar import Calendar, Event
 from datetime import datetime, timedelta, timezone
 import paho.mqtt.client as mqtt
 
@@ -49,31 +48,19 @@ def fetch_events():
             print("⚠️ Erreur : Impossible de récupérer les événements. Vérifie l'URL.")
             return []
         
-        cal = Calendar.from_ical(response.text)
         events = []
         max_date = datetime.now(timezone.utc) + timedelta(days=DAYS_IN_FUTURE)
 
         print("📥 Liste des événements futurs récupérés :")
         
-        for component in cal.walk():
-            if component.name == "VEVENT":
-                event_name = component.get("SUMMARY", "Événement sans titre")
-                start_time = component.get("DTSTART")
-                end_time = component.get("DTEND")
+        for line in response.text.splitlines():
+            if line.startswith("SUMMARY:"):
+                event_name = line.replace("SUMMARY:", "").strip()
+            elif line.startswith("DTSTART:"):
+                start_time = datetime.strptime(line.replace("DTSTART:", "").strip(), "%Y%m%dT%H%M%SZ").replace(tzinfo=timezone.utc)
+            elif line.startswith("DTEND:"):
+                end_time = datetime.strptime(line.replace("DTEND:", "").strip(), "%Y%m%dT%H%M%SZ").replace(tzinfo=timezone.utc)
                 
-                if not start_time or not end_time:
-                    continue  # Ignorer les événements sans dates
-
-                start_time = start_time.dt if hasattr(start_time, 'dt') else None
-                end_time = end_time.dt if hasattr(end_time, 'dt') else None
-
-                # Uniformiser les fuseaux horaires en UTC
-                if isinstance(start_time, datetime) and start_time.tzinfo is None:
-                    start_time = start_time.replace(tzinfo=timezone.utc)
-                if isinstance(end_time, datetime) and end_time.tzinfo is None:
-                    end_time = end_time.replace(tzinfo=timezone.utc)
-
-                # Filtrer directement les événements passés
                 if start_time < datetime.now(timezone.utc) or start_time > max_date:
                     continue  # Ignorer les événements hors plage
                 
@@ -81,8 +68,8 @@ def fetch_events():
                 
                 events.append({
                     "name": event_name,
-                    "start_time": start_time.strftime("%Y-%m-%dT%H:%M:%S%z"),
-                    "end_time": end_time.strftime("%Y-%m-%dT%H:%M:%S%z")
+                    "start_time": start_time.strftime("%Y%m%dT%H%M%SZ"),
+                    "end_time": end_time.strftime("%Y%m%dT%H%M%SZ")
                 })
         
         return events
@@ -97,17 +84,12 @@ def filter_events(events, keyword):
 # Fonction pour créer le fichier ICS
 def create_ics(event):
     try:
-        cal = Calendar()
-        event_ics = Event()
-        event_ics.add("SUMMARY", event["name"])
-        event_ics.add("DTSTART", event["start_time"])
-        event_ics.add("DTEND", event["end_time"])
-        cal.add_component(event_ics)
+        ics_content = f"""BEGIN:VCALENDAR\nVERSION:2.0\nPRODID:-//Apple Inc.//NONSGML iCal 4.0.5//EN\nBEGIN:VEVENT\nUID:{event['name']}\nDTSTAMP:{event['start_time']}\nDTSTART:{event['start_time']}\nDTEND:{event['end_time']}\nSUMMARY:{event['name']}\nEND:VEVENT\nEND:VCALENDAR"""
         
-        with open(ICS_FILE, "wb") as f:
-            f.write(cal.to_ical())
+        with open(ICS_FILE, "w") as f:
+            f.write(ics_content)
         
-        print(f"📂 Fichier ICS créé :\n{cal.to_ical().decode()}")
+        print(f"📂 Fichier ICS créé :\n{ics_content}")
     except Exception as e:
         print(f"❌ Erreur lors de la création du fichier ICS : {e}")
 
