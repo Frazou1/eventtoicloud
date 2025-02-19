@@ -48,6 +48,7 @@ def save_cache(cache):
 cache = load_cache()
 
 # Fonction pour récupérer les événements depuis le fichier ICS
+# Fonction pour récupérer les événements depuis le fichier ICS
 def fetch_events():
     try:
         response = requests.get(args.event_source_url)
@@ -55,67 +56,42 @@ def fetch_events():
         if response.status_code != 200 or not response.text:
             print("⚠️ Erreur : Impossible de récupérer les événements. Vérifie l'URL.")
             return []
-
+        
         events = []
         max_date = datetime.now(timezone.utc) + timedelta(days=DAYS_IN_FUTURE)
 
         print("📥 Liste des événements futurs récupérés :")
-
-        event_name = None
-        start_time = None
-        end_time = None
-        event_uid = None
-
+        
         for line in response.text.splitlines():
             if line.startswith("SUMMARY:"):
+                
                 event_name = line.replace("SUMMARY:", "").strip()
             elif line.startswith("DTSTART:"):
                 start_time_str = line.replace("DTSTART:", "").strip()
                 if start_time_str.endswith("Z"):
                     start_time = datetime.strptime(start_time_str, "%Y%m%dT%H%M%SZ").replace(tzinfo=timezone.utc)
-                elif len(start_time_str) == 8:  # Format YYYYMMDD (All-day event)
-                    start_time = datetime.strptime(start_time_str, "%Y%m%d").replace(tzinfo=timezone.utc)
                 else:
                     start_time = datetime.strptime(start_time_str, "%Y%m%dT%H%M%S").replace(tzinfo=timezone.utc)
             elif line.startswith("DTEND:"):
                 end_time_str = line.replace("DTEND:", "").strip()
                 if end_time_str.endswith("Z"):
                     end_time = datetime.strptime(end_time_str, "%Y%m%dT%H%M%SZ").replace(tzinfo=timezone.utc)
-                elif len(end_time_str) == 8:  # Format YYYYMMDD (All-day event)
-                    end_time = datetime.strptime(end_time_str, "%Y%m%d").replace(tzinfo=timezone.utc)
                 else:
                     end_time = datetime.strptime(end_time_str, "%Y%m%dT%H%M%S").replace(tzinfo=timezone.utc)
-            elif line.startswith("UID:"):
-                event_uid = line.replace("UID:", "").strip()
-
-            if event_name and start_time and event_uid:
-                if not end_time:
-                    print(f"⚠️ DTEND manquant pour '{event_name}', ajout automatique de 1h")
-                    end_time = start_time + timedelta(hours=1)
-
-                if end_time < start_time:
-                    print(f"⚠️ DTEND ({end_time}) est avant DTSTART ({start_time}) pour '{event_name}', correction automatique.")
-                    end_time = start_time + timedelta(hours=1)
-
+                
                 if start_time < datetime.now(timezone.utc) or start_time > max_date:
-                    continue  
-
+                    continue  # Ignorer les événements hors plage
+                
                 print(f"   - {event_name} ({start_time} -> {end_time})")
-
+                
                 events.append({
                     "name": event_name,
                     "start_time": start_time.strftime("%Y%m%dT%H%M%SZ"),
                     "end_time": end_time.strftime("%Y%m%dT%H%M%SZ"),
-                    "uid": event_uid
+                    "uid": str(uuid.uuid4())  # Générer un UID unique
                 })
-
-                event_name = None
-                start_time = None
-                end_time = None
-                event_uid = None
-
+        
         return events
-
     except Exception as e:
         print(f"❌ Erreur lors du traitement du calendrier iCal : {e}")
         return []
