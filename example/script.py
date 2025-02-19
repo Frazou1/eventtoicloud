@@ -24,8 +24,9 @@ CACHE_FILE = "/config/event_cache.json"
 ICS_FILE = "/config/file_notifications/event.ics"
 DAYS_IN_FUTURE = 30  # Nombre de jours dans le futur à considérer
 
-# Définir la date actuelle pour filtrer les événements passés
-NOW = datetime.now(timezone.utc)
+# Vérifier et créer les fichiers de cache et de notifications
+os.makedirs(os.path.dirname(CACHE_FILE), exist_ok=True)
+os.makedirs(os.path.dirname(ICS_FILE), exist_ok=True)
 
 def load_cache():
     if os.path.exists(CACHE_FILE):
@@ -50,7 +51,7 @@ def fetch_events():
         
         cal = Calendar.from_ical(response.text)
         events = []
-        max_date = NOW + timedelta(days=DAYS_IN_FUTURE)
+        max_date = datetime.now(timezone.utc) + timedelta(days=DAYS_IN_FUTURE)
 
         print("📥 Liste des événements futurs récupérés :")
         
@@ -73,7 +74,7 @@ def fetch_events():
                     end_time = end_time.replace(tzinfo=timezone.utc)
 
                 # Filtrer directement les événements passés
-                if start_time < NOW or start_time > max_date:
+                if start_time < datetime.now(timezone.utc) or start_time > max_date:
                     continue  # Ignorer les événements hors plage
                 
                 print(f"   - {event_name} ({start_time} -> {end_time})")
@@ -97,7 +98,7 @@ def filter_events(events, keyword):
 def send_to_icloud(event_name):
     print(f"📤 Envoi de l'événement '{event_name}' à iCloud...")
     
-    icloud_event_url = f"{args.icloud_calendar_url}/event.ics"
+    icloud_event_url = f"{args.icloud_calendar_url}event.ics"
     command = (
         f'curl -v -X PUT -u "{args.icloud_username}:{args.icloud_password}" '
         f'-H "Content-Type: text/calendar" '
