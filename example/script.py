@@ -17,6 +17,8 @@ parser.add_argument("--icloud_calendar_url", type=str, required=True)
 parser.add_argument("--mqtt_host", type=str, required=True)
 parser.add_argument("--mqtt_port", type=int, required=True)
 parser.add_argument("--mqtt_topic", type=str, required=True)
+parser.add_argument("--mqtt_username", type=str, required=True)
+parser.add_argument("--mqtt_password", type=str, required=True)
 args = parser.parse_args()
 
 # Charger le cache des événements envoyés
@@ -206,7 +208,25 @@ def delete_event_from_icloud(event):
 
     except Exception as e:
         print(f"❌ Erreur lors de la suppression de l'événement : {e}")
-
+        
+def publish_to_mqtt(event):
+    try:
+        client = mqtt.Client()
+        client.username_pw_set(args.mqtt_username, args.mqtt_password)  # Authentification
+        client.connect(args.mqtt_host, args.mqtt_port, 60)
+        
+        payload = {
+            "name": event["name"],
+            "start_time": event["start_time"],
+            "end_time": event["end_time"],
+            "uid": event["uid"]
+        }
+        
+        client.publish(args.mqtt_topic, json.dumps(payload))
+        client.disconnect()
+        print(f"📤 Événement '{event['name']}' publié sur MQTT.")
+    except Exception as e:
+        print(f"❌ Erreur lors de la publication MQTT : {e}")
 
 
 # Exécution principale
@@ -239,7 +259,8 @@ def main():
                 delete_event_from_icloud(event)  # Supprime l'ancien événement
 
             send_to_icloud(event, i + 1)  # Envoie le nouvel événement
-            cache[event["uid"]] = event["start_time"]  # Mettre à jour le cache avec l'UID
+            publish_to_mqtt(event)  # Publie l'événement sur MQTT
+            cache[event["uid"]] = event["start_time"]  # Mettre à jour le cache
         
         save_cache(cache)
     else:
