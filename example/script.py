@@ -123,13 +123,20 @@ def create_ics(event):
 
     print(f"📂 Fichier ICS créé pour {event['name']}")
 
-# Envoyer à iCloud
+# Envoyer à iCloud avec logs détaillés
 def send_to_icloud():
-    os.system(
+    print("📤 Envoi du fichier ICS à iCloud...")
+    command = (
         f'curl -v -X PUT -u "{args.icloud_username}:{args.icloud_password}" '
         f'-H "Content-Type: text/calendar" '
         f'--data-binary @{ICS_FILE} "{args.icloud_calendar_url}"'
     )
+    print(f"🔧 Commande exécutée : {command}")
+    response = os.system(command)
+    if response == 0:
+        print("✅ Événement ajouté avec succès à iCloud !")
+    else:
+        print("❌ Échec de l'envoi de l'événement à iCloud.")
 
 # Mettre à jour MQTT
 def update_home_assistant_sensor(events):
@@ -151,8 +158,6 @@ def main():
         print("📋 Événements trouvés :")
         for event in new_events:
             print(f"   - {event['name']} ({event['start_time']} -> {event['end_time']})")
-
-        print("📤 Envoi des événements à iCloud...")
 
         for event in new_events:
             create_ics(event)
