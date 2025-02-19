@@ -52,7 +52,7 @@ def fetch_events():
         events = []
         max_date = NOW + timedelta(days=DAYS_IN_FUTURE)
 
-        print("📥 Liste complète des événements récupérés :")
+        print("📥 Liste des événements futurs récupérés :")
         
         for component in cal.walk():
             if component.name == "VEVENT":
@@ -61,30 +61,22 @@ def fetch_events():
                 end_time = component.get("DTEND")
                 
                 if not start_time or not end_time:
-                    print(f"⚠️ Événement ignoré : {event_name} (DTSTART ou DTEND manquant)")
-                    continue
+                    continue  # Ignorer les événements sans dates
 
                 start_time = start_time.dt if hasattr(start_time, 'dt') else None
                 end_time = end_time.dt if hasattr(end_time, 'dt') else None
 
                 # Uniformiser les fuseaux horaires en UTC
-                if isinstance(start_time, datetime):
-                    if start_time.tzinfo is None:
-                        start_time = start_time.replace(tzinfo=timezone.utc)
-                if isinstance(end_time, datetime):
-                    if end_time.tzinfo is None:
-                        end_time = end_time.replace(tzinfo=timezone.utc)
+                if isinstance(start_time, datetime) and start_time.tzinfo is None:
+                    start_time = start_time.replace(tzinfo=timezone.utc)
+                if isinstance(end_time, datetime) and end_time.tzinfo is None:
+                    end_time = end_time.replace(tzinfo=timezone.utc)
 
-                print(f"   - {event_name} ({start_time} -> {end_time})")
-                
-                # Vérification des incohérences de dates
-                if start_time.year < 2020:
-                    print(f"⚠️ Alerte : L'événement '{event_name}' a une date ancienne ({start_time.year})")
-                
-                # Filtrer les événements hors de la plage de dates autorisée
+                # Filtrer directement les événements passés
                 if start_time < NOW or start_time > max_date:
-                    print(f"⏩ Événement ignoré : {event_name} (hors plage {NOW.date()} - {max_date.date()})")
-                    continue
+                    continue  # Ignorer les événements hors plage
+                
+                print(f"   - {event_name} ({start_time} -> {end_time})")
                 
                 events.append({
                     "name": event_name,
