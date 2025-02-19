@@ -215,10 +215,10 @@ def publish_to_mqtt(event):
         client.connect(args.mqtt_host, args.mqtt_port, 60)
 
         # Base du topic MQTT
-        topic_base = "homeassistant/sensor/eventtoicloud"
+        topic_base = "homeassistant"
 
         # Nom du capteur (utilisez l'UID de l'événement pour le rendre unique)
-        sensor_name = f"event_{event['name']}_{event['start_time']}"
+        sensor_name = f"eventtoicloud_{event['uid']}"
 
         # Payload pour l'état du capteur
         state = event["start_time"]
@@ -231,16 +231,16 @@ def publish_to_mqtt(event):
         }
 
         # Configuration du capteur pour MQTT Discovery
-        config_topic = f"{topic_base}/{sensor_name}/config"
-        state_topic = f"{topic_base}/{sensor_name}/state"
-        attr_topic = f"{topic_base}/{sensor_name}/attributes"
+        config_topic = f"{topic_base}/sensor/{sensor_name}/config"
+        state_topic = f"{topic_base}/sensor/{sensor_name}/state"
+        attr_topic = f"{topic_base}/sensor/{sensor_name}/attributes"
 
         # Payload de configuration pour MQTT Discovery
         config_payload = {
             "name": f"Événement {event['name']}",  # Nom affiché dans Home Assistant
             "state_topic": state_topic,  # Topic pour l'état du capteur
             "json_attributes_topic": attr_topic,  # Topic pour les attributs
-            "unique_id": f"eventtoicloud_{event['uid']}",  # ID unique pour le capteur
+            "unique_id": sensor_name,  # ID unique pour le capteur
             "device": {
                 "identifiers": ["eventtoicloud_device"],  # Identifiant du dispositif
                 "name": "EventToiCloud",  # Nom du dispositif
