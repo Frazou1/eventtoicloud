@@ -6,6 +6,12 @@ import time
 import uuid
 from datetime import datetime, timedelta, timezone
 import paho.mqtt.client as mqtt
+import re  # Ajout de l'import pour utiliser clean_uid
+
+# Définition de clean_uid
+def clean_uid(uid):
+    """Nettoie l'UID pour qu'il soit conforme aux noms de topics MQTT."""
+    return re.sub(r"[^a-zA-Z0-9_-]", "_", uid)
 
 # Lire les arguments depuis le script bash
 parser = argparse.ArgumentParser(description="Event to iCloud Add-on")
