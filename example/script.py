@@ -117,7 +117,12 @@ def send_to_icloud(event, event_index):
         if ics_file is None:
             return
         
+        # Récupérer seulement le nom du fichier ICS (sans le chemin complet)
+        ics_filename = os.path.basename(ics_file)
+
+        # Utiliser le bon nom de fichier pour l'URL iCloud
         icloud_event_url = f"{args.icloud_calendar_url}{ics_filename}"
+
         command = (
             f'curl -v -X PUT -u "{args.icloud_username}:{args.icloud_password}" '
             f'-H "Content-Type: text/calendar" '
@@ -132,6 +137,7 @@ def send_to_icloud(event, event_index):
             print(f"❌ Échec de l'envoi de l'événement '{event['name']}' à iCloud.")
     except Exception as e:
         print(f"Erreur lors de l'envoi à iCloud : {e}")
+
 
 # Exécution principale
 def main():
