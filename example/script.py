@@ -11,7 +11,12 @@ import re  # Ajout de l'import pour utiliser clean_uid
 # Définition de clean_uid
 def clean_uid(uid):
     """Nettoie l'UID pour qu'il soit conforme aux noms de topics MQTT."""
-    return re.sub(r"[^a-zA-Z0-9_-]", "_", uid)
+    # Remplace les espaces et caractères spéciaux par des underscores
+    uid = re.sub(r"[^a-zA-Z0-9_]", "_", uid)
+    # Normalise les caractères accentués (é -> e, ç -> c, etc.)
+    uid = ''.join(c for c in unicodedata.normalize('NFKD', uid) if unicodedata.category(c) != 'Mn')
+    # Convertit en minuscules pour standardisation
+    return uid.lower()
 
 # Lire les arguments depuis le script bash
 parser = argparse.ArgumentParser(description="Event to iCloud Add-on")
