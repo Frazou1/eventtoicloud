@@ -90,6 +90,10 @@ def fetch_events():
         print(f"❌ Erreur lors du traitement du calendrier iCal : {e}")
         return []
 
+# Fonction pour filtrer les événements contenant le mot-clé
+def filter_events(events, keyword):
+    return [event for event in events if keyword.lower() in event["name"].lower()]
+
 # Fonction pour créer le fichier ICS
 def create_ics(event):
     try:
@@ -108,9 +112,9 @@ def create_ics(event):
         print(f"❌ Erreur lors de la création du fichier ICS : {e}")
 
 # Fonction pour envoyer un événement à iCloud
-def send_to_icloud(event_name):
-    print(f"📤 Envoi de l'événement '{event_name}' à iCloud...")
-    create_ics(event_name)
+def send_to_icloud(event):
+    print(f"📤 Envoi de l'événement '{event['name']}' à iCloud...")
+    create_ics(event)
     icloud_event_url = f"{args.icloud_calendar_url}event.ics"
     command = (
         f'curl -v -X PUT -u "{args.icloud_username}:{args.icloud_password}" '
@@ -121,9 +125,9 @@ def send_to_icloud(event_name):
     response = os.system(command)
     
     if response == 0:
-        print(f"✅ Événement '{event_name}' ajouté avec succès à iCloud !")
+        print(f"✅ Événement '{event['name']}' ajouté avec succès à iCloud !")
     else:
-        print(f"❌ Échec de l'envoi de l'événement '{event_name}' à iCloud.")
+        print(f"❌ Échec de l'envoi de l'événement '{event['name']}' à iCloud.")
 
 # Exécution principale
 def main():
@@ -140,7 +144,7 @@ def main():
             print(f"   - {event['name']} ({event['start_time']} -> {event['end_time']})")
         
         for event in new_events:
-            send_to_icloud(event['name'])
+            send_to_icloud(event)
             cache[event["name"]] = event["start_time"]
         
         save_cache(cache)
