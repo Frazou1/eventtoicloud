@@ -11,6 +11,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     libgbm-dev \
     libasound2 \
     jq \
+    curl \ 
     && rm -rf /var/lib/apt/lists/*
 
 # Installer les packages Python nécessaires
