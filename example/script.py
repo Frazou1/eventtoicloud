@@ -219,10 +219,10 @@ def publish_to_mqtt(event):
         topic_base = "homeassistant/sensor/eventtoicloud"
 
         # Nom du capteur (utilisez l'UID de l'événement pour le rendre unique)
-        sensor_name = f"event_{event['uid']}"
+        sensor_name = f"event_{event['name']}_{event['start_time']}"
 
         # Payload pour l'état du capteur
-        state = event["name"]
+        state = event["start_time"]
 
         # Attributs du capteur
         attributes = {
