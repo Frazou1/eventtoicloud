@@ -109,49 +109,62 @@ def create_ics(event, event_index):
         print(f"❌ Erreur lors de la création du fichier ICS : {e}")
         return None
 
+import subprocess
+import os
+
 def send_to_icloud(event, event_index):
     print(f"📤 Envoi de l'événement '{event['name']}' à iCloud...")
+
     try:
         print(f"Création du fichier ICS pour l'événement {event['name']}")
         ics_file = create_ics(event, event_index)
         print(f"Chemin du fichier ICS créé : {ics_file}")
+
         if ics_file is None:
+            print("❌ Erreur : Fichier ICS non généré.")
             return
-        
+
+        # Vérifier si le fichier ICS existe et est lisible
+        if not os.path.exists(ics_file):
+            print(f"❌ Le fichier ICS n'existe pas : {ics_file}")
+            return
+        if not os.access(ics_file, os.R_OK):
+            print(f"❌ Le fichier ICS n'est pas lisible : {ics_file}")
+            return
+
         # Récupérer seulement le nom du fichier ICS (sans le chemin complet)
         ics_filename = os.path.basename(ics_file)
 
-        # Utiliser le bon nom de fichier pour l'URL iCloud
+        # Construire l'URL pour iCloud
         icloud_event_url = f"{args.icloud_calendar_url}{ics_filename}"
 
+        # Afficher le contenu du fichier ICS pour vérifier son format
+        with open(ics_file, "r") as f:
+            print("📄 Contenu du fichier ICS :")
+            print(f.read())
+
+        # Exécuter la commande CURL avec subprocess
         command = (
             f'curl -v -X PUT -u "{args.icloud_username}:{args.icloud_password}" '
             f'-H "Content-Type: text/calendar" '
             f'--data-binary @{ics_file} "{icloud_event_url}"'
         )
+
         print(f"🔧 Commande exécutée : {command}")
-import subprocess
 
-try:
-    result = subprocess.run(command, shell=True, check=True, capture_output=True, text=True)
-    print(f"✅ Succès : {result.stdout}")
-except subprocess.CalledProcessError as e:
-    print(f"❌ Erreur lors de l'envoi à iCloud : {e.stderr}")
+        # Exécuter la commande et capturer la sortie
+        result = subprocess.run(command, shell=True, check=False, capture_output=True, text=True)
 
-        
-        if response == 0:
+        # Vérifier si la commande s'est bien exécutée
+        if result.returncode == 0:
             print(f"✅ Événement '{event['name']}' ajouté avec succès à iCloud !")
         else:
             print(f"❌ Échec de l'envoi de l'événement '{event['name']}' à iCloud.")
-    except Exception as e:
-        print(f"Erreur lors de l'envoi à iCloud : {e}")
+            print(f"❌ Erreur détaillée : {result.stderr}")
 
-if not os.path.exists(ics_file):
-    print(f"❌ Le fichier ICS n'existe pas : {ics_file}")
-    return
-if not os.access(ics_file, os.R_OK):
-    print(f"❌ Le fichier ICS n'est pas lisible : {ics_file}")
-    return
+    except Exception as e:
+        print(f"❌ Une erreur inattendue s'est produite : {e}")
+
 
 
 # Exécution principale
