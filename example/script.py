@@ -214,17 +214,48 @@ def publish_to_mqtt(event):
         client = mqtt.Client()
         client.username_pw_set(args.mqtt_username, args.mqtt_password)  # Authentification
         client.connect(args.mqtt_host, args.mqtt_port, 60)
-        
-        payload = {
-            "name": event["name"],
+
+        # Base du topic MQTT
+        topic_base = "homeassistant/sensor/eventtoicloud"
+
+        # Nom du capteur (utilisez l'UID de l'événement pour le rendre unique)
+        sensor_name = f"event_{event['uid']}"
+
+        # Payload pour l'état du capteur
+        state = event["name"]
+
+        # Attributs du capteur
+        attributes = {
             "start_time": event["start_time"],
             "end_time": event["end_time"],
             "uid": event["uid"]
         }
-        
-        client.publish(args.mqtt_topic, json.dumps(payload))
+
+        # Configuration du capteur pour MQTT Discovery
+        config_topic = f"{topic_base}/{sensor_name}/config"
+        state_topic = f"{topic_base}/{sensor_name}/state"
+        attr_topic = f"{topic_base}/{sensor_name}/attributes"
+
+        # Payload de configuration pour MQTT Discovery
+        config_payload = {
+            "name": f"Événement {event['name']}",  # Nom affiché dans Home Assistant
+            "state_topic": state_topic,  # Topic pour l'état du capteur
+            "json_attributes_topic": attr_topic,  # Topic pour les attributs
+            "unique_id": f"eventtoicloud_{event['uid']}",  # ID unique pour le capteur
+            "device": {
+                "identifiers": ["eventtoicloud_device"],  # Identifiant du dispositif
+                "name": "EventToiCloud",  # Nom du dispositif
+                "manufacturer": "EventToiCloud Add-on"  # Fabricant
+            }
+        }
+
+        # Publier la configuration, l'état et les attributs
+        client.publish(config_topic, json.dumps(config_payload), retain=True)
+        client.publish(state_topic, state, retain=True)
+        client.publish(attr_topic, json.dumps(attributes), retain=True)
+
         client.disconnect()
-        print(f"📤 Événement '{event['name']}' publié sur MQTT.")
+        print(f"📤 Événement '{event['name']}' publié sur MQTT avec Discovery.")
     except Exception as e:
         print(f"❌ Erreur lors de la publication MQTT : {e}")
 
