@@ -11,13 +11,15 @@ ICLOUD_PASSWORD="$(jq -r '.icloud_password' $OPTIONS_FILE)"
 ICLOUD_CALENDAR_URL="$(jq -r '.icloud_calendar_url' $OPTIONS_FILE)"
 MQTT_HOST="$(jq -r '.mqtt_broker' $OPTIONS_FILE)"
 MQTT_PORT="$(jq -r '.mqtt_port' $OPTIONS_FILE)"
+MQTT_USERNAME="$(jq -r '.mqtt_username' $OPTIONS_FILE)"
+MQTT_PASSWORD="$(jq -r '.mqtt_password' $OPTIONS_FILE)"
 MQTT_TOPIC="$(jq -r '.mqtt_topic' $OPTIONS_FILE)"
 UPDATE_INTERVAL="$(jq -r '.update_interval' $OPTIONS_FILE)"
 
 echo "[INFO] 📅 Démarrage de l'add-on EventToiCloud"
 echo "[INFO] 🔍 Mot-clé = $KEYWORD"
 echo "[INFO] 🌐 Source des événements = $EVENT_SOURCE_URL"
-echo "[INFO] 📡 MQTT = $MQTT_HOST:$MQTT_PORT"
+echo "[INFO] 📡 MQTT = $MQTT_HOST:$MQTT_PORT (utilisateur: $MQTT_USERNAME)"
 echo "[INFO] 📆 iCloud Calendar URL = $ICLOUD_CALENDAR_URL"
 echo "[INFO] ⏳ Intervalle de mise à jour = $UPDATE_INTERVAL secondes"
 
@@ -31,6 +33,8 @@ while true; do
       --icloud_calendar_url "$ICLOUD_CALENDAR_URL" \
       --mqtt_host "$MQTT_HOST" \
       --mqtt_port "$MQTT_PORT" \
+      --mqtt_username "$MQTT_USERNAME" \
+      --mqtt_password "$MQTT_PASSWORD" \
       --mqtt_topic "$MQTT_TOPIC"
 
     echo "[INFO] ⏳ Attente $UPDATE_INTERVAL secondes avant la prochaine mise à jour..."
