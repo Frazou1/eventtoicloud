@@ -73,9 +73,9 @@ def fetch_events():
         print(f"❌ Erreur lors du traitement du calendrier iCal : {e}")
         return []
 
-# Filtrer les événements par mot-clé
+# Filtrer les événements exactement par *Rosalie Fraser*
 def filter_events(events, keyword):
-    return [event for event in events if keyword.lower() in event["name"].lower()]
+    return [event for event in events if event["name"].strip().lower() == keyword.lower()]
 
 # Vérifier si un événement est déjà envoyé
 def is_event_already_sent(event):
@@ -89,6 +89,8 @@ def mark_event_as_sent(event):
 
 # Générer un fichier ICS
 def create_ics(event):
+    os.makedirs(os.path.dirname(ICS_FILE), exist_ok=True)
+    
     cal = Calendar()
     event_ical = Event()
     event_ical.add("summary", event["name"])
@@ -98,6 +100,8 @@ def create_ics(event):
 
     with open(ICS_FILE, "wb") as f:
         f.write(cal.to_ical())
+
+    print(f"📂 Fichier ICS créé pour {event['name']}")
 
 # Envoyer à iCloud
 def send_to_icloud():
@@ -123,7 +127,13 @@ def main():
     new_events = [event for event in filtered_events if not is_event_already_sent(event)]
     
     if new_events:
-        print(f"📅 {len(new_events)} nouveaux événements détectés ! Envoi à iCloud...")
+        print(f"📅 {len(new_events)} nouveaux événements détectés !")
+        print("📋 Événements trouvés :")
+        for event in new_events:
+            print(f"   - {event['name']} ({event['start_time']} -> {event['end_time']})")
+
+        print("📤 Envoi des événements à iCloud...")
+
         for event in new_events:
             create_ics(event)
             send_to_icloud()
