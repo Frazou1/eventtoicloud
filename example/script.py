@@ -56,6 +56,7 @@ def fetch_events():
         
         for line in response.text.splitlines():
             if line.startswith("SUMMARY:"):
+                
                 event_name = line.replace("SUMMARY:", "").strip()
             elif line.startswith("DTSTART:"):
                 start_time_str = line.replace("DTSTART:", "").strip()
@@ -129,7 +130,14 @@ def send_to_icloud(event, event_index):
             f'--data-binary @{ics_file} "{icloud_event_url}"'
         )
         print(f"🔧 Commande exécutée : {command}")
-        response = os.system(command)
+import subprocess
+
+try:
+    result = subprocess.run(command, shell=True, check=True, capture_output=True, text=True)
+    print(f"✅ Succès : {result.stdout}")
+except subprocess.CalledProcessError as e:
+    print(f"❌ Erreur lors de l'envoi à iCloud : {e.stderr}")
+
         
         if response == 0:
             print(f"✅ Événement '{event['name']}' ajouté avec succès à iCloud !")
@@ -137,6 +145,13 @@ def send_to_icloud(event, event_index):
             print(f"❌ Échec de l'envoi de l'événement '{event['name']}' à iCloud.")
     except Exception as e:
         print(f"Erreur lors de l'envoi à iCloud : {e}")
+
+if not os.path.exists(ics_file):
+    print(f"❌ Le fichier ICS n'existe pas : {ics_file}")
+    return
+if not os.access(ics_file, os.R_OK):
+    print(f"❌ Le fichier ICS n'est pas lisible : {ics_file}")
+    return
 
 
 # Exécution principale
