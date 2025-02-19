@@ -24,6 +24,9 @@ CACHE_FILE = "/config/event_cache.json"
 ICS_FILE = "/config/file_notifications/event.ics"
 DAYS_IN_FUTURE = 30  # Nombre de jours dans le futur à considérer
 
+# Définir la date actuelle pour filtrer les événements passés
+NOW = datetime.now(timezone.utc)
+
 def load_cache():
     if os.path.exists(CACHE_FILE):
         with open(CACHE_FILE, "r") as file:
@@ -47,8 +50,7 @@ def fetch_events():
         
         cal = Calendar.from_ical(response.text)
         events = []
-        now = datetime.now(timezone.utc)
-        max_date = now + timedelta(days=DAYS_IN_FUTURE)
+        max_date = NOW + timedelta(days=DAYS_IN_FUTURE)
 
         print("📥 Liste complète des événements récupérés :")
         
@@ -74,9 +76,10 @@ def fetch_events():
                         end_time = end_time.replace(tzinfo=timezone.utc)
 
                 print(f"   - {event_name} ({start_time} -> {end_time})")
-                # Filtrer les événements trop éloignés
-                if start_time > max_date:
-                    print(f"⏩ Événement ignoré : {event_name} (dépassé {DAYS_IN_FUTURE} jours)")
+                
+                # Filtrer les événements hors de la plage de dates autorisée
+                if start_time < NOW or start_time > max_date:
+                    print(f"⏩ Événement ignoré : {event_name} (hors plage {NOW.date()} - {max_date.date()})")
                     continue
                 
                 events.append({
