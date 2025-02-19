@@ -54,39 +54,50 @@ def fetch_events():
 
         print("📥 Liste des événements futurs récupérés :")
         
-        current_event = {}
-        
         for line in response.text.splitlines():
             if line.startswith("SUMMARY:"):
-                current_event["name"] = line.replace("SUMMARY:", "").strip()
+                event_name = line.replace("SUMMARY:", "").strip()
             elif line.startswith("DTSTART:"):
                 start_time_str = line.replace("DTSTART:", "").strip()
-                current_event["start_time"] = datetime.strptime(start_time_str, "%Y%m%dT%H%M%SZ").replace(tzinfo=timezone.utc)
+                if start_time_str.endswith("Z"):
+                    start_time = datetime.strptime(start_time_str, "%Y%m%dT%H%M%SZ").replace(tzinfo=timezone.utc)
+                else:
+                    start_time = datetime.strptime(start_time_str, "%Y%m%dT%H%M%S").replace(tzinfo=timezone.utc)
             elif line.startswith("DTEND:"):
                 end_time_str = line.replace("DTEND:", "").strip()
-                current_event["end_time"] = datetime.strptime(end_time_str, "%Y%m%dT%H%M%SZ").replace(tzinfo=timezone.utc)
+                if end_time_str.endswith("Z"):
+                    end_time = datetime.strptime(end_time_str, "%Y%m%dT%H%M%SZ").replace(tzinfo=timezone.utc)
+                else:
+                    end_time = datetime.strptime(end_time_str, "%Y%m%dT%H%M%S").replace(tzinfo=timezone.utc)
                 
-                if args.keyword.lower() in current_event["name"].lower() and datetime.now(timezone.utc) <= current_event["start_time"] <= max_date:
-                    current_event["uid"] = str(uuid.uuid4())
-                    events.append(current_event.copy())
-                    print(f"   ✅ {current_event['name']} ({current_event['start_time']} -> {current_event['end_time']})")
+                if start_time < datetime.now(timezone.utc) or start_time > max_date:
+                    continue  # Ignorer les événements hors plage
+                
+                print(f"   - {event_name} ({start_time} -> {end_time})")
+                
+                events.append({
+                    "name": event_name,
+                    "start_time": start_time.strftime("%Y%m%dT%H%M%SZ"),
+                    "end_time": end_time.strftime("%Y%m%dT%H%M%SZ"),
+                    "uid": str(uuid.uuid4())  # Générer un UID unique
+                })
         
         return events
     except Exception as e:
         print(f"❌ Erreur lors du traitement du calendrier iCal : {e}")
         return []
 
+# Fonction pour filtrer les événements contenant le mot-clé
+def filter_events(events, keyword):
+    return [event for event in events if keyword.lower() in event["name"].lower()]
+
 # Fonction pour créer le fichier ICS
 def create_ics(event, event_index):
     try:
-        if not os.path.exists(ICS_DIR):
-            print(f"⚠️ Dossier ICS inexistant : {ICS_DIR}, tentative de création...")
-            os.makedirs(ICS_DIR, exist_ok=True)
-        
         ics_filename = f"event-{event_index}.ics"
         ics_path = os.path.join(ICS_DIR, ics_filename)
 
-        ics_content = f"""BEGIN:VCALENDAR\nVERSION:2.0\nPRODID:-//Apple Inc.//NONSGML iCal 4.0.5//EN\nBEGIN:VEVENT\nUID:{event['uid']}\nDTSTAMP:{event['start_time'].strftime('%Y%m%dT%H%M%SZ')}\nDTSTART:{event['start_time'].strftime('%Y%m%dT%H%M%SZ')}\nDTEND:{event['end_time'].strftime('%Y%m%dT%H%M%SZ')}\nSUMMARY:{event['name']}\nEND:VEVENT\nEND:VCALENDAR"""
+        ics_content = f"""BEGIN:VCALENDAR\nVERSION:2.0\nPRODID:-//Apple Inc.//NONSGML iCal 4.0.5//EN\nBEGIN:VEVENT\nUID:{event['uid']}\nDTSTAMP:{event['start_time']}\nDTSTART:{event['start_time']}\nDTEND:{event['end_time']}\nSUMMARY:{event['name']}\nEND:VEVENT\nEND:VCALENDAR"""
         
         with open(ics_path, "w") as f:
             f.write(ics_content)
@@ -97,21 +108,48 @@ def create_ics(event, event_index):
         print(f"❌ Erreur lors de la création du fichier ICS : {e}")
         return None
 
+# Fonction pour envoyer un événement à iCloud
+def send_to_icloud(event, event_index):
+    print(f"📤 Envoi de l'événement '{event['name']}' à iCloud...")
+    ics_file = create_ics(event, event_index)
+    if ics_file is None:
+        return
+    
+    icloud_event_url = f"{args.icloud_calendar_url}{event['uid']}.ics"
+    command = (
+        f'curl -v -X PUT -u "{args.icloud_username}:{args.icloud_password}" '
+        f'-H "Content-Type: text/calendar" '
+        f'--data-binary @{ics_file} "{icloud_event_url}"'
+    )
+    print(f"🔧 Commande exécutée : {command}")
+    response = os.system(command)
+    
+    if response == 0:
+        print(f"✅ Événement '{event['name']}' ajouté avec succès à iCloud !")
+    else:
+        print(f"❌ Échec de l'envoi de l'événement '{event['name']}' à iCloud.")
+
 # Exécution principale
 def main():
     print("🔄 Récupération des événements...")
     events = fetch_events()
+    filtered_events = filter_events(events, args.keyword)
     
-    if not os.path.exists(ICS_DIR):
-        print(f"❌ Dossier {ICS_DIR} inexistant malgré la tentative de création.")
-        return
+    new_events = [event for event in filtered_events if event["name"] not in cache]
     
-    if not events:
-        print("✅ Aucun nouvel événement à traiter.")
-        return
-    
-    for i, event in enumerate(events):
-        create_ics(event, i + 1)
+    if new_events:
+        print(f"📅 {len(new_events)} nouveaux événements détectés !")
+        print("📋 Événements trouvés :")
+        for i, event in enumerate(new_events):
+            print(f"   - {event['name']} ({event['start_time']} -> {event['end_time']})")
+        
+        for i, event in enumerate(new_events):
+            send_to_icloud(event, i + 1)
+            cache[event["name"]] = event["start_time"]
+        
+        save_cache(cache)
+    else:
+        print("✅ Aucun nouvel événement à envoyer.")
 
 if __name__ == "__main__":
     main()
