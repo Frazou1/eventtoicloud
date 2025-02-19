@@ -158,12 +158,21 @@ def send_to_icloud(event, event_index):
         # Vérifier si la commande s'est bien exécutée
         if result.returncode == 0:
             print(f"✅ Événement '{event['name']}' ajouté avec succès à iCloud !")
+
+            # Supprimer le fichier ICS après un envoi réussi
+            try:
+                os.remove(ics_file)
+                print(f"🗑️ Fichier ICS supprimé : {ics_file}")
+            except Exception as e:
+                print(f"⚠️ Impossible de supprimer le fichier ICS : {e}")
+
         else:
             print(f"❌ Échec de l'envoi de l'événement '{event['name']}' à iCloud.")
             print(f"❌ Erreur détaillée : {result.stderr}")
 
     except Exception as e:
         print(f"❌ Une erreur inattendue s'est produite : {e}")
+
 
 
 
