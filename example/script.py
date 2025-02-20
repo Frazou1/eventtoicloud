@@ -157,6 +157,7 @@ def send_to_icloud(event, event_index):
 
         # Afficher le contenu du fichier ICS pour vérifier son format
         with open(ics_file, "r") as f:
+            pass
             #print("📄 Contenu du fichier ICS :")
             #print(f.read())
 
