@@ -15,8 +15,8 @@ L' Event Filter Add-on pour Home Assistant permet de filtrer les événements pr
   - Cliquez sur Repositories et ajoutez : https://github.com/Frazou1/eventtoicloud
     ou cliquer sur le bouton suivant:
 
-   [![Open your Home Assistant instance and show the add add-on repository dialog with a specific repository URL pre-filled.](https://my.home-assistant.io/badges/supervisor_add_addon_repository.svg)](https://my.home-assistant.io/redirect/supervisor_add_addon_repository/?repository_url=https%3A%2F%2Fgithub.com%2Ffrazou1%2eventtoicloud)
-2. **Install** the add-on named **Event Filter Add-on** from your local add-ons list.
+   [![Open your Home Assistant instance and show the add add-on repository dialog with a specific repository URL pre-filled.](https://my.home-assistant.io/badges/supervisor_add_addon_repository.svg)](https://my.home-assistant.io/redirect/supervisor_add_addon_repository/?repository_url=https%3A%2F%2Fgithub.com%2Ffrazou1%2feventtoicloud)
+   
 
 2. Installer le module complémentaire :
   - Recherchez Event Filter Add-on et cliquez sur Install.
