@@ -69,9 +69,12 @@ mode: single
 
 ## Dépendances
 
-- `requests`
-- `icalendar`
-- `paho-mqtt`
+- requests
+- icalendar
+- paho-mqtt
+- selenium
+- webdriver-manager
+- beautifulsoup4
 
 ## Contributeur
 Les contributions sont les bienvenues ! Pour contribuer :
