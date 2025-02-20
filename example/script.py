@@ -65,7 +65,7 @@ def fetch_events():
         events = []
         max_date = datetime.now(timezone.utc) + timedelta(days=DAYS_IN_FUTURE)
 
-        print("📥 Liste des événements futurs récupérés :")
+       # print("📥 Liste des événements futurs récupérés :")
         
         for line in response.text.splitlines():
             if line.startswith("SUMMARY:"):
@@ -89,7 +89,7 @@ def fetch_events():
                 if start_time < datetime.now(timezone.utc) or start_time > max_date:
                     continue  # Ignorer les événements hors plage
                 
-                print(f"   - {event_name} ({start_time} -> {end_time})")
+               # print(f"   - {event_name} ({start_time} -> {end_time})")
                 
                 events.append({
                     "name": event_name,
@@ -119,7 +119,8 @@ def create_ics(event, event_index):
         with open(ics_path, "w") as f:
             f.write(ics_content)
         
-        print(f"📂 Fichier ICS créé : {ics_filename}\n{ics_content}")
+       # print(f"📂 Fichier ICS créé : {ics_filename}\n{ics_content}")
+        print(f"📂 Fichier ICS créé : {ics_filename}")
         return ics_path
     except Exception as e:
         print(f"❌ Erreur lors de la création du fichier ICS : {e}")
@@ -156,8 +157,8 @@ def send_to_icloud(event, event_index):
 
         # Afficher le contenu du fichier ICS pour vérifier son format
         with open(ics_file, "r") as f:
-            print("📄 Contenu du fichier ICS :")
-            print(f.read())
+            #print("📄 Contenu du fichier ICS :")
+            #print(f.read())
 
         # Exécuter la commande CURL avec subprocess
         command = (
@@ -255,9 +256,9 @@ def publish_to_mqtt(event):
         }
 
         # Publier la configuration, l'état et les attributs
-        client.publish(config_topic, json.dumps(config_payload), retain=True)
-        client.publish(state_topic, state, retain=True)
-        client.publish(attr_topic, json.dumps(attributes), retain=True)
+        client.publish(config_topic, json.dumps(config_payload), retain=False)
+        client.publish(state_topic, state, retain=False)
+        client.publish(attr_topic, json.dumps(attributes), retain=False)
 
         client.disconnect()
         print(f"📤 Événement '{event['name']}' publié sur MQTT avec Discovery.")
