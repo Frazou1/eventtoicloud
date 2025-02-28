@@ -55,15 +55,19 @@ def save_cache(cache):
 cache = load_cache()
 
 # Fonction pour récupérer les événements depuis le fichier ICS
-# Fonction pour récupérer les événements depuis le fichier ICS
+
 def fetch_events():
     try:
-        response = requests.get(args.event_source_url)
-
+        # URL publique du calendrier Google
+        calendar_url = "https://calendar.google.com/calendar/embed?src=qmda.ca_5spdn7s6bd47b794copl2lpbn8%40group.calendar.google.com&ctz=America%2FToronto"
+        
+        # Charger le flux iCal depuis l'URL
+        response = requests.get(calendar_url)
+        
         if response.status_code != 200 or not response.text:
             print("⚠️ Erreur : Impossible de récupérer les événements. Vérifie l'URL.")
             return []
-
+        
         events = []
         max_date = datetime.now(timezone.utc) + timedelta(days=DAYS_IN_FUTURE)
 
@@ -71,7 +75,7 @@ def fetch_events():
 
         for line in response.text.splitlines():
             if line.startswith("SUMMARY:"):
-                event_name = line.replace("SUMMARY:", "").strip()  # Assigner event_name si le SUMMARY est trouvé
+                event_name = line.replace("SUMMARY:", "").strip()
 
             elif line.startswith("DTSTART:"):
                 start_time_str = line.replace("DTSTART:", "").strip()
@@ -82,11 +86,11 @@ def fetch_events():
                 else:
                     # L'heure est sans fuseau horaire. On peut supposer que l'heure est en heure locale (par exemple, Paris)
                     start_time = datetime.strptime(start_time_str, "%Y%m%dT%H%M%S")
-                    local_tz = pytz.timezone("Europe/Paris")  # Remplacer par le fuseau horaire approprié
+                    local_tz = pytz.timezone("America/Toronto")  # Fuseau horaire Toronto
                     start_time = local_tz.localize(start_time)  # Localiser l'heure sans fuseau horaire
                     start_time = start_time.astimezone(timezone.utc)  # Convertir en UTC
 
-                # **Condition pour loguer uniquement certains événements**
+                # Condition pour loguer uniquement certains événements
                 if "Rosalie F avec Daphnée" in event_name:
                     print(f"Debug - Heure originale (avant conversion) : {start_time_str}")
                     print(f"Debug - Heure convertie (en UTC) : {start_time}")
@@ -100,11 +104,11 @@ def fetch_events():
                 else:
                     # L'heure est sans fuseau horaire. On peut supposer que l'heure est en heure locale (par exemple, Paris)
                     end_time = datetime.strptime(end_time_str, "%Y%m%dT%H%M%S")
-                    local_tz = pytz.timezone("Europe/Paris")  # Remplacer par le fuseau horaire approprié
+                    local_tz = pytz.timezone("America/Toronto")  # Fuseau horaire Toronto
                     end_time = local_tz.localize(end_time)  # Localiser l'heure sans fuseau horaire
                     end_time = end_time.astimezone(timezone.utc)  # Convertir en UTC
 
-                # **Condition pour loguer uniquement certains événements**
+                # Condition pour loguer uniquement certains événements
                 if "Rosalie F avec Daphnée" in event_name:
                     print(f"Debug - Heure originale (avant conversion) : {end_time_str}")
                     print(f"Debug - Heure convertie (en UTC) : {end_time}")
@@ -126,6 +130,7 @@ def fetch_events():
     except Exception as e:
         print(f"❌ Erreur lors du traitement du calendrier iCal : {e}")
         return []
+
 
 # Fonction pour filtrer les événements contenant le mot-clé
 def filter_events(events, keyword):
