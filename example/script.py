@@ -66,11 +66,11 @@ def fetch_events():
         events = []
         max_date = datetime.now(timezone.utc) + timedelta(days=DAYS_IN_FUTURE)
 
-       # print("📥 Liste des événements futurs récupérés :")
+        # Afficher tous les événements récupérés
+        print("📥 Liste des événements récupérés :")
         
         for line in response.text.splitlines():
             if line.startswith("SUMMARY:"):
-                
                 event_name = line.replace("SUMMARY:", "").strip()
             elif line.startswith("DTSTART:"):
                 start_time_str = line.replace("DTSTART:", "").strip()
@@ -90,8 +90,6 @@ def fetch_events():
                 if start_time < datetime.now(timezone.utc) or start_time > max_date:
                     continue  # Ignorer les événements hors plage
                 
-               # print(f"   - {event_name} ({start_time} -> {end_time})")
-                
                 events.append({
                     "name": event_name,
                     "start_time": start_time.strftime("%Y%m%dT%H%M%SZ"),
@@ -99,10 +97,16 @@ def fetch_events():
                     "uid": event_uid   # Générer un UID unique
                 })
         
+        # Afficher les événements récupérés avant de les renvoyer
+        print("📅 Événements récupérés :")
+        for event in events:
+            print(f"  - {event['name']} ({event['start_time']} -> {event['end_time']})")
+
         return events
     except Exception as e:
         print(f"❌ Erreur lors du traitement du calendrier iCal : {e}")
         return []
+
 
 
 # Fonction pour filtrer les événements contenant le mot-clé
