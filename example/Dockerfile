@@ -15,7 +15,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     && rm -rf /var/lib/apt/lists/*
 
 # Installer les packages Python nécessaires
-RUN pip install --no-cache-dir selenium==4.* webdriver-manager==4.* beautifulsoup4 paho-mqtt==1.6.1 requests icalendar
+RUN pip install --no-cache-dir selenium==4.* webdriver-manager==4.* beautifulsoup4 paho-mqtt==1.6.1 requests icalendar pytz
 
 # Copier les fichiers nécessaires dans le conteneur
 COPY run.sh /run.sh
