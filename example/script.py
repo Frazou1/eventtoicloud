@@ -62,7 +62,7 @@ from datetime import datetime, timedelta, timezone
 
 def fetch_events():
     try:
-        # URL publique du calendrier Google
+        # URL publique du calendrier Google (flux iCal)
         calendar_url = "https://calendar.google.com/calendar/embed?src=qmda.ca_5spdn7s6bd47b794copl2lpbn8%40group.calendar.google.com&ctz=America%2FToronto"
         
         # Charger le flux iCal depuis l'URL
@@ -84,10 +84,10 @@ def fetch_events():
         # Lecture ligne par ligne du flux iCal
         print("📜 Analyse du contenu du flux iCal...")
         for line in response.text.splitlines():
-            # Afficher les premières lignes pour vérifier le format du flux
             if line.startswith("SUMMARY:"):
+                # Extraction du nom de l'événement
                 event_name = line.replace("SUMMARY:", "").strip()
-                print(f"🔍 Event trouvé : {event_name}")
+                print(f"Debug - Event Name extrait : {event_name}")
 
             elif line.startswith("DTSTART:"):
                 start_time_str = line.replace("DTSTART:", "").strip()
@@ -102,6 +102,7 @@ def fetch_events():
                     start_time = local_tz.localize(start_time)  # Localiser l'heure sans fuseau horaire
                     start_time = start_time.astimezone(timezone.utc)  # Convertir en UTC
 
+                # Log pour vérifier la conversion des heures
                 print(f"Debug - Heure originale (avant conversion) : {start_time_str}")
                 print(f"Debug - Heure convertie (en UTC) : {start_time}")
 
@@ -118,6 +119,7 @@ def fetch_events():
                     end_time = local_tz.localize(end_time)  # Localiser l'heure sans fuseau horaire
                     end_time = end_time.astimezone(timezone.utc)  # Convertir en UTC
 
+                # Log pour vérifier la conversion des heures
                 print(f"Debug - Heure de fin originale (avant conversion) : {end_time_str}")
                 print(f"Debug - Heure de fin convertie (en UTC) : {end_time}")
 
@@ -127,13 +129,16 @@ def fetch_events():
                 if start_time < datetime.now(timezone.utc) or start_time > max_date:
                     continue  # Ignorer les événements hors plage
 
-                print(f"✅ Événement {event_name} ajouté : UID = {event_uid}")
-                events.append({
-                    "name": event_name,
-                    "start_time": start_time.strftime("%Y%m%dT%H%M%SZ"),
-                    "end_time": end_time.strftime("%Y%m%dT%H%M%SZ"),
-                    "uid": event_uid   # Générer un UID unique
-                })
+                # Recherche du mot-clé "Rosalie F" dans le nom de l'événement (insensible à la casse)
+                if "rosalie f" in event_name.lower():
+                    print(f"Debug - Trouvé l'événement avec le mot-clé : {event_name}")
+                    events.append({
+                        "name": event_name,
+                        "start_time": start_time.strftime("%Y%m%dT%H%M%SZ"),
+                        "end_time": end_time.strftime("%Y%m%dT%H%M%SZ"),
+                        "uid": event_uid   # Générer un UID unique
+                    })
+                    print(f"✅ Événement {event_name} ajouté : UID = {event_uid}")
 
         # Afficher le nombre d'événements extraits
         print(f"📅 Nombre d'événements extraits : {len(events)}")
@@ -142,7 +147,6 @@ def fetch_events():
     except Exception as e:
         print(f"❌ Erreur lors du traitement du calendrier iCal : {e}")
         return []
-
 
 # Fonction pour filtrer les événements contenant le mot-clé
 def filter_events(events, keyword):
