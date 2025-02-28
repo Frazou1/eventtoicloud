@@ -83,9 +83,10 @@ def fetch_events():
                     start_time = local_tz.localize(start_time)  # Localiser l'heure sans fuseau horaire
                     start_time = start_time.astimezone(timezone.utc)  # Convertir en UTC
 
-                # **Ajout des logs ici pour vérifier l'heure avant et après la conversion**
-                print(f"Debug - Heure originale (avant conversion) : {start_time_str}")
-                print(f"Debug - Heure convertie (en UTC) : {start_time}")
+                # **Condition pour loguer uniquement certains événements**
+                if "Rosalie F avec Daphnée" in event_name:
+                    print(f"Debug - Heure originale (avant conversion) : {start_time_str}")
+                    print(f"Debug - Heure convertie (en UTC) : {start_time}")
 
             elif line.startswith("DTEND:"):
                 end_time_str = line.replace("DTEND:", "").strip()
@@ -100,9 +101,10 @@ def fetch_events():
                     end_time = local_tz.localize(end_time)  # Localiser l'heure sans fuseau horaire
                     end_time = end_time.astimezone(timezone.utc)  # Convertir en UTC
 
-                # **Ajout des logs ici pour vérifier l'heure avant et après la conversion**
-                print(f"Debug - Heure originale (avant conversion) : {end_time_str}")
-                print(f"Debug - Heure convertie (en UTC) : {end_time}")
+                # **Condition pour loguer uniquement certains événements**
+                if "Rosalie F avec Daphnée" in event_name:
+                    print(f"Debug - Heure originale (avant conversion) : {end_time_str}")
+                    print(f"Debug - Heure convertie (en UTC) : {end_time}")
 
             elif line.startswith("UID:"):
                 event_uid = line.replace("UID:", "").strip()
