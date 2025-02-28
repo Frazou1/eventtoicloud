@@ -56,10 +56,6 @@ cache = load_cache()
 
 # Fonction pour récupérer les événements depuis le fichier ICS
 
-import requests
-import pytz
-from datetime import datetime, timedelta, timezone
-
 def fetch_events():
     try:
         # URL publique du calendrier Google (flux iCal)
@@ -76,6 +72,10 @@ def fetch_events():
 
         print(f"✅ Flux iCal récupéré avec succès (Code: {response.status_code})")
 
+        # Log pour afficher une partie du contenu du flux iCal
+        print("🔍 Affichage du contenu du flux iCal (premières lignes) :")
+        print(response.text[:500])  # Afficher seulement les 500 premiers caractères
+
         events = []
         max_date = datetime.now(timezone.utc) + timedelta(days=DAYS_IN_FUTURE)
 
@@ -84,8 +84,8 @@ def fetch_events():
         # Lecture ligne par ligne du flux iCal
         print("📜 Analyse du contenu du flux iCal...")
         for line in response.text.splitlines():
+            # Afficher le contenu des lignes pertinentes
             if line.startswith("SUMMARY:"):
-                # Extraction du nom de l'événement
                 event_name = line.replace("SUMMARY:", "").strip()
                 print(f"Debug - Event Name extrait : {event_name}")
 
@@ -102,7 +102,6 @@ def fetch_events():
                     start_time = local_tz.localize(start_time)  # Localiser l'heure sans fuseau horaire
                     start_time = start_time.astimezone(timezone.utc)  # Convertir en UTC
 
-                # Log pour vérifier la conversion des heures
                 print(f"Debug - Heure originale (avant conversion) : {start_time_str}")
                 print(f"Debug - Heure convertie (en UTC) : {start_time}")
 
@@ -119,7 +118,6 @@ def fetch_events():
                     end_time = local_tz.localize(end_time)  # Localiser l'heure sans fuseau horaire
                     end_time = end_time.astimezone(timezone.utc)  # Convertir en UTC
 
-                # Log pour vérifier la conversion des heures
                 print(f"Debug - Heure de fin originale (avant conversion) : {end_time_str}")
                 print(f"Debug - Heure de fin convertie (en UTC) : {end_time}")
 
