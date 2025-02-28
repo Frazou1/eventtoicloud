@@ -56,26 +56,38 @@ cache = load_cache()
 
 # Fonction pour récupérer les événements depuis le fichier ICS
 
+import requests
+import pytz
+from datetime import datetime, timedelta, timezone
+
 def fetch_events():
     try:
         # URL publique du calendrier Google
         calendar_url = "https://calendar.google.com/calendar/embed?src=qmda.ca_5spdn7s6bd47b794copl2lpbn8%40group.calendar.google.com&ctz=America%2FToronto"
         
         # Charger le flux iCal depuis l'URL
+        print("🔄 Récupération du flux iCal depuis Google Calendar...")
         response = requests.get(calendar_url)
-        
+
+        # Vérification de la réponse
         if response.status_code != 200 or not response.text:
             print("⚠️ Erreur : Impossible de récupérer les événements. Vérifie l'URL.")
             return []
-        
+
+        print(f"✅ Flux iCal récupéré avec succès (Code: {response.status_code})")
+
         events = []
         max_date = datetime.now(timezone.utc) + timedelta(days=DAYS_IN_FUTURE)
 
         event_name = ""  # Initialisation de la variable event_name pour éviter l'erreur
 
+        # Lecture ligne par ligne du flux iCal
+        print("📜 Analyse du contenu du flux iCal...")
         for line in response.text.splitlines():
+            # Afficher les premières lignes pour vérifier le format du flux
             if line.startswith("SUMMARY:"):
                 event_name = line.replace("SUMMARY:", "").strip()
+                print(f"🔍 Event trouvé : {event_name}")
 
             elif line.startswith("DTSTART:"):
                 start_time_str = line.replace("DTSTART:", "").strip()
@@ -90,10 +102,8 @@ def fetch_events():
                     start_time = local_tz.localize(start_time)  # Localiser l'heure sans fuseau horaire
                     start_time = start_time.astimezone(timezone.utc)  # Convertir en UTC
 
-                # Condition pour loguer uniquement certains événements
-                if "Rosalie F avec Daphnée" in event_name:
-                    print(f"Debug - Heure originale (avant conversion) : {start_time_str}")
-                    print(f"Debug - Heure convertie (en UTC) : {start_time}")
+                print(f"Debug - Heure originale (avant conversion) : {start_time_str}")
+                print(f"Debug - Heure convertie (en UTC) : {start_time}")
 
             elif line.startswith("DTEND:"):
                 end_time_str = line.replace("DTEND:", "").strip()
@@ -108,10 +118,8 @@ def fetch_events():
                     end_time = local_tz.localize(end_time)  # Localiser l'heure sans fuseau horaire
                     end_time = end_time.astimezone(timezone.utc)  # Convertir en UTC
 
-                # Condition pour loguer uniquement certains événements
-                if "Rosalie F avec Daphnée" in event_name:
-                    print(f"Debug - Heure originale (avant conversion) : {end_time_str}")
-                    print(f"Debug - Heure convertie (en UTC) : {end_time}")
+                print(f"Debug - Heure de fin originale (avant conversion) : {end_time_str}")
+                print(f"Debug - Heure de fin convertie (en UTC) : {end_time}")
 
             elif line.startswith("UID:"):
                 event_uid = line.replace("UID:", "").strip()
@@ -119,12 +127,16 @@ def fetch_events():
                 if start_time < datetime.now(timezone.utc) or start_time > max_date:
                     continue  # Ignorer les événements hors plage
 
+                print(f"✅ Événement {event_name} ajouté : UID = {event_uid}")
                 events.append({
                     "name": event_name,
                     "start_time": start_time.strftime("%Y%m%dT%H%M%SZ"),
                     "end_time": end_time.strftime("%Y%m%dT%H%M%SZ"),
                     "uid": event_uid   # Générer un UID unique
                 })
+
+        # Afficher le nombre d'événements extraits
+        print(f"📅 Nombre d'événements extraits : {len(events)}")
 
         return events
     except Exception as e:
