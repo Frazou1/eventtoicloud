@@ -67,9 +67,12 @@ def fetch_events():
         events = []
         max_date = datetime.now(timezone.utc) + timedelta(days=DAYS_IN_FUTURE)
 
+        event_name = ""  # Initialisation de la variable event_name pour éviter l'erreur
+
         for line in response.text.splitlines():
             if line.startswith("SUMMARY:"):
-                event_name = line.replace("SUMMARY:", "").strip()
+                event_name = line.replace("SUMMARY:", "").strip()  # Assigner event_name si le SUMMARY est trouvé
+
             elif line.startswith("DTSTART:"):
                 start_time_str = line.replace("DTSTART:", "").strip()
 
@@ -123,7 +126,6 @@ def fetch_events():
     except Exception as e:
         print(f"❌ Erreur lors du traitement du calendrier iCal : {e}")
         return []
-
 
 # Fonction pour filtrer les événements contenant le mot-clé
 def filter_events(events, keyword):
