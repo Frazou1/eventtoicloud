@@ -4,6 +4,7 @@ import json
 import requests
 import time
 import uuid
+import unicodedata
 from datetime import datetime, timedelta, timezone
 import paho.mqtt.client as mqtt
 import re  # Ajout de l'import pour utiliser clean_uid
