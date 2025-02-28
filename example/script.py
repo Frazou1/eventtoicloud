@@ -5,6 +5,7 @@ import requests
 import time
 import uuid
 import unicodedata
+import pytz
 from datetime import datetime, timedelta, timezone
 import paho.mqtt.client as mqtt
 import re  # Ajout de l'import pour utiliser clean_uid
@@ -58,49 +59,56 @@ cache = load_cache()
 def fetch_events():
     try:
         response = requests.get(args.event_source_url)
-        
+
         if response.status_code != 200 or not response.text:
             print("⚠️ Erreur : Impossible de récupérer les événements. Vérifie l'URL.")
             return []
-        
+
         events = []
         max_date = datetime.now(timezone.utc) + timedelta(days=DAYS_IN_FUTURE)
 
-        # print("📥 Liste des événements futurs récupérés :")
-        
         for line in response.text.splitlines():
             if line.startswith("SUMMARY:"):
                 event_name = line.replace("SUMMARY:", "").strip()
             elif line.startswith("DTSTART:"):
                 start_time_str = line.replace("DTSTART:", "").strip()
+
                 if start_time_str.endswith("Z"):
+                    # L'heure est déjà en UTC (avec Z)
                     start_time = datetime.strptime(start_time_str, "%Y%m%dT%H%M%SZ").replace(tzinfo=timezone.utc)
                 else:
-                    start_time = datetime.strptime(start_time_str, "%Y%m%dT%H%M%S").replace(tzinfo=timezone.utc)
+                    # L'heure est sans fuseau horaire. On peut supposer que l'heure est en heure locale (par exemple, Paris)
+                    start_time = datetime.strptime(start_time_str, "%Y%m%dT%H%M%S")
+                    local_tz = pytz.timezone("Europe/Paris")  # Remplacer par le fuseau horaire approprié
+                    start_time = local_tz.localize(start_time)  # Localiser l'heure sans fuseau horaire
+                    start_time = start_time.astimezone(timezone.utc)  # Convertir en UTC
 
-                # Vérification et ajout du fuseau horaire UTC si nécessaire
-                if start_time.tzinfo is None:
-                    start_time = start_time.replace(tzinfo=timezone.utc)
-                    
+                # **Ajout des logs ici pour vérifier l'heure avant et après la conversion**
+                print(f"Debug - Heure originale (avant conversion) : {start_time_str}")
+                print(f"Debug - Heure convertie (en UTC) : {start_time}")
+
             elif line.startswith("DTEND:"):
                 end_time_str = line.replace("DTEND:", "").strip()
+
                 if end_time_str.endswith("Z"):
+                    # L'heure est déjà en UTC (avec Z)
                     end_time = datetime.strptime(end_time_str, "%Y%m%dT%H%M%SZ").replace(tzinfo=timezone.utc)
                 else:
-                    end_time = datetime.strptime(end_time_str, "%Y%m%dT%H%M%S").replace(tzinfo=timezone.utc)
+                    # L'heure est sans fuseau horaire. On peut supposer que l'heure est en heure locale (par exemple, Paris)
+                    end_time = datetime.strptime(end_time_str, "%Y%m%dT%H%M%S")
+                    local_tz = pytz.timezone("Europe/Paris")  # Remplacer par le fuseau horaire approprié
+                    end_time = local_tz.localize(end_time)  # Localiser l'heure sans fuseau horaire
+                    end_time = end_time.astimezone(timezone.utc)  # Convertir en UTC
 
-                # Vérification et ajout du fuseau horaire UTC si nécessaire
-                if end_time.tzinfo is None:
-                    end_time = end_time.replace(tzinfo=timezone.utc)
-                    
+                # **Ajout des logs ici pour vérifier l'heure avant et après la conversion**
+                print(f"Debug - Heure originale (avant conversion) : {end_time_str}")
+                print(f"Debug - Heure convertie (en UTC) : {end_time}")
+
             elif line.startswith("UID:"):
                 event_uid = line.replace("UID:", "").strip()
-                
+
                 if start_time < datetime.now(timezone.utc) or start_time > max_date:
                     continue  # Ignorer les événements hors plage
-                
-                # Ajouter un log pour vérifier l'heure
-                print(f"Debug - Heure de début: {start_time} pour l'événement {event_name}")
 
                 events.append({
                     "name": event_name,
@@ -108,12 +116,11 @@ def fetch_events():
                     "end_time": end_time.strftime("%Y%m%dT%H%M%SZ"),
                     "uid": event_uid   # Générer un UID unique
                 })
-        
+
         return events
     except Exception as e:
         print(f"❌ Erreur lors du traitement du calendrier iCal : {e}")
         return []
-
 
 
 # Fonction pour filtrer les événements contenant le mot-clé
