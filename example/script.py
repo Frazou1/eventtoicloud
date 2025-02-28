@@ -65,54 +65,45 @@ def fetch_events():
         
         events = []
         max_date = datetime.now(timezone.utc) + timedelta(days=DAYS_IN_FUTURE)
-
         event_name = ""
         start_time = None
         end_time = None
         event_uid = ""
 
+       # print("📥 Liste des événements futurs récupérés :")
+        
         for line in response.text.splitlines():
             if line.startswith("SUMMARY:"):
-                # Commence un nouvel événement, donc on sauvegarde l'ancien si nécessaire
-                if start_time and event_name:
-                    events.append({
-                        "name": event_name,
-                        "start_time": start_time.strftime("%Y%m%dT%H%M%SZ"),
-                        "end_time": end_time.strftime("%Y%m%dT%H%M%SZ"),
-                        "uid": event_uid
-                    })
                 
-                # Réinitialisation pour le nouvel événement
                 event_name = line.replace("SUMMARY:", "").strip()
-            
             elif line.startswith("DTSTART:"):
                 start_time_str = line.replace("DTSTART:", "").strip()
                 if start_time_str.endswith("Z"):
                     start_time = datetime.strptime(start_time_str, "%Y%m%dT%H%M%SZ").replace(tzinfo=timezone.utc)
                 else:
                     start_time = datetime.strptime(start_time_str, "%Y%m%dT%H%M%S").replace(tzinfo=timezone.utc)
-            
             elif line.startswith("DTEND:"):
                 end_time_str = line.replace("DTEND:", "").strip()
                 if end_time_str.endswith("Z"):
                     end_time = datetime.strptime(end_time_str, "%Y%m%dT%H%M%SZ").replace(tzinfo=timezone.utc)
                 else:
                     end_time = datetime.strptime(end_time_str, "%Y%m%dT%H%M%S").replace(tzinfo=timezone.utc)
-            
             elif line.startswith("UID:"):
                 event_uid = line.replace("UID:", "").strip()
-
-        # Pour ajouter le dernier événement (car il n'est pas ajouté à l'intérieur de la boucle)
-        if start_time and event_name:
-            events.append({
-                "name": event_name,
-                "start_time": start_time.strftime("%Y%m%dT%H%M%SZ"),
-                "end_time": end_time.strftime("%Y%m%dT%H%M%SZ"),
-                "uid": event_uid
-            })
-
+                
+                if start_time < datetime.now(timezone.utc) or start_time > max_date:
+                    continue  # Ignorer les événements hors plage
+                
+               # print(f"   - {event_name} ({start_time} -> {end_time})")
+                
+                events.append({
+                    "name": event_name,
+                    "start_time": start_time.strftime("%Y%m%dT%H%M%SZ"),
+                    "end_time": end_time.strftime("%Y%m%dT%H%M%SZ"),
+                    "uid": event_uid   # Générer un UID unique
+                })
+        
         return events
-
     except Exception as e:
         print(f"❌ Erreur lors du traitement du calendrier iCal : {e}")
         return []
