@@ -5,7 +5,6 @@ import requests
 import time
 import uuid
 import unicodedata
-import pytz
 from datetime import datetime, timedelta, timezone
 import paho.mqtt.client as mqtt
 import re  # Ajout de l'import pour utiliser clean_uid
@@ -55,96 +54,56 @@ def save_cache(cache):
 cache = load_cache()
 
 # Fonction pour récupérer les événements depuis le fichier ICS
-
+# Fonction pour récupérer les événements depuis le fichier ICS
 def fetch_events():
     try:
-        # URL publique du calendrier Google (flux iCal)
-        calendar_url = "https://calendar.google.com/calendar/embed?src=qmda.ca_5spdn7s6bd47b794copl2lpbn8%40group.calendar.google.com&ctz=America%2FToronto"
+        response = requests.get(args.event_source_url)
         
-        # Charger le flux iCal depuis l'URL
-        print("🔄 Récupération du flux iCal depuis Google Calendar...")
-        response = requests.get(calendar_url)
-
-        # Vérification de la réponse
         if response.status_code != 200 or not response.text:
             print("⚠️ Erreur : Impossible de récupérer les événements. Vérifie l'URL.")
             return []
-
-        print(f"✅ Flux iCal récupéré avec succès (Code: {response.status_code})")
-
-        # Log pour afficher une partie du contenu du flux iCal
-        print("🔍 Affichage du contenu du flux iCal (premières lignes) :")
-        print(response.text[:500])  # Afficher seulement les 500 premiers caractères
-
+        
         events = []
         max_date = datetime.now(timezone.utc) + timedelta(days=DAYS_IN_FUTURE)
 
-        event_name = ""  # Initialisation de la variable event_name pour éviter l'erreur
-
-        # Lecture ligne par ligne du flux iCal
-        print("📜 Analyse du contenu du flux iCal...")
+       # print("📥 Liste des événements futurs récupérés :")
+        
         for line in response.text.splitlines():
-            # Afficher le contenu des lignes pertinentes
             if line.startswith("SUMMARY:"):
+                
                 event_name = line.replace("SUMMARY:", "").strip()
-                print(f"Debug - Event Name extrait : {event_name}")
-
             elif line.startswith("DTSTART:"):
                 start_time_str = line.replace("DTSTART:", "").strip()
-
                 if start_time_str.endswith("Z"):
-                    # L'heure est déjà en UTC (avec Z)
                     start_time = datetime.strptime(start_time_str, "%Y%m%dT%H%M%SZ").replace(tzinfo=timezone.utc)
                 else:
-                    # L'heure est sans fuseau horaire. On peut supposer que l'heure est en heure locale (par exemple, Paris)
-                    start_time = datetime.strptime(start_time_str, "%Y%m%dT%H%M%S")
-                    local_tz = pytz.timezone("America/Toronto")  # Fuseau horaire Toronto
-                    start_time = local_tz.localize(start_time)  # Localiser l'heure sans fuseau horaire
-                    start_time = start_time.astimezone(timezone.utc)  # Convertir en UTC
-
-                print(f"Debug - Heure originale (avant conversion) : {start_time_str}")
-                print(f"Debug - Heure convertie (en UTC) : {start_time}")
-
+                    start_time = datetime.strptime(start_time_str, "%Y%m%dT%H%M%S").replace(tzinfo=timezone.utc)
             elif line.startswith("DTEND:"):
                 end_time_str = line.replace("DTEND:", "").strip()
-
                 if end_time_str.endswith("Z"):
-                    # L'heure est déjà en UTC (avec Z)
                     end_time = datetime.strptime(end_time_str, "%Y%m%dT%H%M%SZ").replace(tzinfo=timezone.utc)
                 else:
-                    # L'heure est sans fuseau horaire. On peut supposer que l'heure est en heure locale (par exemple, Paris)
-                    end_time = datetime.strptime(end_time_str, "%Y%m%dT%H%M%S")
-                    local_tz = pytz.timezone("America/Toronto")  # Fuseau horaire Toronto
-                    end_time = local_tz.localize(end_time)  # Localiser l'heure sans fuseau horaire
-                    end_time = end_time.astimezone(timezone.utc)  # Convertir en UTC
-
-                print(f"Debug - Heure de fin originale (avant conversion) : {end_time_str}")
-                print(f"Debug - Heure de fin convertie (en UTC) : {end_time}")
-
+                    end_time = datetime.strptime(end_time_str, "%Y%m%dT%H%M%S").replace(tzinfo=timezone.utc)
             elif line.startswith("UID:"):
                 event_uid = line.replace("UID:", "").strip()
-
+                
                 if start_time < datetime.now(timezone.utc) or start_time > max_date:
                     continue  # Ignorer les événements hors plage
-
-                # Recherche du mot-clé "Rosalie F" dans le nom de l'événement (insensible à la casse)
-                if "rosalie f" in event_name.lower():
-                    print(f"Debug - Trouvé l'événement avec le mot-clé : {event_name}")
-                    events.append({
-                        "name": event_name,
-                        "start_time": start_time.strftime("%Y%m%dT%H%M%SZ"),
-                        "end_time": end_time.strftime("%Y%m%dT%H%M%SZ"),
-                        "uid": event_uid   # Générer un UID unique
-                    })
-                    print(f"✅ Événement {event_name} ajouté : UID = {event_uid}")
-
-        # Afficher le nombre d'événements extraits
-        print(f"📅 Nombre d'événements extraits : {len(events)}")
-
+                
+               # print(f"   - {event_name} ({start_time} -> {end_time})")
+                
+                events.append({
+                    "name": event_name,
+                    "start_time": start_time.strftime("%Y%m%dT%H%M%SZ"),
+                    "end_time": end_time.strftime("%Y%m%dT%H%M%SZ"),
+                    "uid": event_uid   # Générer un UID unique
+                })
+        
         return events
     except Exception as e:
         print(f"❌ Erreur lors du traitement du calendrier iCal : {e}")
         return []
+
 
 # Fonction pour filtrer les événements contenant le mot-clé
 def filter_events(events, keyword):
@@ -175,9 +134,7 @@ def send_to_icloud(event, event_index):
     print(f"📤 Envoi de l'événement '{event['name']}' à iCloud...")
 
     try:
-        # Log avant d'envoyer l'événement à iCloud
-        print(f"Debug - Envoi de l'événement : {event['name']}, Start: {event['start_time']}, End: {event['end_time']}")
-
+        print(f"Création du fichier ICS pour l'événement {event['name']}")
         ics_file = create_ics(event, event_index)
         print(f"Chemin du fichier ICS créé : {ics_file}")
 
@@ -193,11 +150,19 @@ def send_to_icloud(event, event_index):
             print(f"❌ Le fichier ICS n'est pas lisible : {ics_file}")
             return
 
+        # Récupérer seulement le nom du fichier ICS (sans le chemin complet)
         ics_filename = os.path.basename(ics_file)
 
         # Construire l'URL pour iCloud
         icloud_event_url = f"{args.icloud_calendar_url}{ics_filename}"
 
+        # Afficher le contenu du fichier ICS pour vérifier son format
+        with open(ics_file, "r") as f:
+            pass
+            #print("📄 Contenu du fichier ICS :")
+            #print(f.read())
+
+        # Exécuter la commande CURL avec subprocess
         command = (
             f'curl -v -X PUT -u "{args.icloud_username}:{args.icloud_password}" '
             f'-H "Content-Type: text/calendar" '
@@ -205,8 +170,11 @@ def send_to_icloud(event, event_index):
         )
 
         print(f"🔧 Commande exécutée : {command}")
+
+        # Exécuter la commande et capturer la sortie
         result = subprocess.run(command, shell=True, check=False, capture_output=True, text=True)
 
+        # Vérifier si la commande s'est bien exécutée
         if result.returncode == 0:
             print(f"✅ Événement '{event['name']}' ajouté avec succès à iCloud !")
 
@@ -223,7 +191,6 @@ def send_to_icloud(event, event_index):
 
     except Exception as e:
         print(f"❌ Une erreur inattendue s'est produite : {e}")
-
 
 def delete_event_from_icloud(event):
     try:
@@ -313,6 +280,7 @@ def main():
         event_uid = event["uid"]
         event_time = event["start_time"]
 
+        # Vérifier si l'événement est déjà dans le cache
         if event_uid in cache:
             if cache[event_uid] != event_time:
                 print(f"🔄 Mise à jour détectée pour '{event['name']}'. Ancienne heure : {cache[event_uid]}, Nouvelle heure : {event_time}")
@@ -324,19 +292,18 @@ def main():
         print(f"📅 {len(new_or_modified_events)} événements à envoyer ou mettre à jour.")
         
         for i, event in enumerate(new_or_modified_events):
+            # Supprimer l'ancien événement s'il existe déjà dans iCloud
             if event["uid"] in cache:
                 delete_event_from_icloud(event)  # Supprime l'ancien événement
 
             send_to_icloud(event, i + 1)  # Envoie le nouvel événement
             publish_to_mqtt(event)  # Publie l'événement sur MQTT
             cache[event["uid"]] = event["start_time"]  # Mettre à jour le cache
-            print(f"Debug - Cache mis à jour pour l'événement '{event['name']}' avec l'heure de début : {event['start_time']}")
             time.sleep(3)
         
         save_cache(cache)
     else:
         print("✅ Aucun événement à mettre à jour ou envoyer.")
-
 
 
 if __name__ == "__main__":
