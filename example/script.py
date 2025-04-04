@@ -73,10 +73,10 @@ def fetch_events():
         for line in response.text.splitlines():
             if line.startswith("BEGIN:VEVENT"):
                 in_event = True
-                event_block = [line]  # On démarre un nouveau bloc
+                event_block = [line]  # Démarrage d'un nouveau bloc
             elif line.startswith("END:VEVENT"):
                 if in_event:
-                    event_block.append(line)  # On ajoute la ligne de fin du bloc
+                    event_block.append(line)  # Ajout de la ligne de fin du bloc
                     # Traitement du bloc complet
                     event_data = {}
                     for block_line in event_block:
@@ -98,9 +98,10 @@ def fetch_events():
                             event_data["uid"] = block_line.replace("UID:", "").strip()
                     
                     in_event = False  # Fin du bloc
+                    
                     # Vérifier que tous les champs requis sont présents
                     if "name" in event_data and "start_time" in event_data and "end_time" in event_data and "uid" in event_data:
-                        # On ne garde que les événements dans la plage désirée
+                        # Conserver uniquement les événements dans la plage désirée
                         if event_data["start_time"] < datetime.now(timezone.utc) or event_data["start_time"] > max_date:
                             continue
                         # Vérifier si le bloc complet contient le mot-clé (insensible à la casse)
@@ -109,6 +110,10 @@ def fetch_events():
                             # Reconvertir les dates en chaînes pour la suite du traitement
                             event_data["start_time"] = event_data["start_time"].strftime("%Y%m%dT%H%M%SZ")
                             event_data["end_time"] = event_data["end_time"].strftime("%Y%m%dT%H%M%SZ")
+                            
+                            # Affichage dans les logs de l'événement filtré
+                            print(f"📌 Événement filtré : {event_data['name']} (UID: {event_data['uid']}) du {event_data['start_time']} au {event_data['end_time']}")
+                            
                             events.append(event_data)
                 else:
                     continue
@@ -116,6 +121,7 @@ def fetch_events():
                 if in_event:
                     event_block.append(line)
         
+        print(f"🔄 Total événements filtrés : {len(events)}")
         return events
     except Exception as e:
         print(f"❌ Erreur lors du traitement du calendrier iCal : {e}")
